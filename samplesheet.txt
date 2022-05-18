@@ -1,0 +1,9 @@
+Project	Cell_Type	Genotype    Treatment   Time	Bio_Rep	Tech_Rep	Seq_Rep	Read1	Read2	Sequencing_Directory
+IMGL	iHPC	WT  NA  00h	1	1	1	sub_IMGL_RNA_iHPC_F_NAN_NAN_S_1-1-1_S2_R1_001.fastq.gz	sub_IMGL_RNA_iHPC_F_NAN_NAN_S_1-1-1_S2_R2_001.fastq.gz	/proj/phanstiel_lab/Data/processed/subsamples/rna/PE_100k/subsampled/
+IMGL	iHPC	WT  NA  00h	2	1	1	sub_IMGL_RNA_iHPC_F_NAN_NAN_S_2-1-1_S6_R1_001.fastq.gz	sub_IMGL_RNA_iHPC_F_NAN_NAN_S_2-1-1_S6_R2_001.fastq.gz	/proj/phanstiel_lab/Data/processed/subsamples/rna/PE_100k/subsampled/
+IMGL	iPSPC	WT  NA  00h	1	1	1	sub_IMGL_RNA_iPSC_F_NAN_NAN_S_1-1-1_S1_R1_001.fastq.gz	sub_IMGL_RNA_iPSC_F_NAN_NAN_S_1-1-1_S1_R2_001.fastq.gz	/proj/phanstiel_lab/Data/processed/subsamples/rna/PE_100k/subsampled/
+IMGL	iPSPC	WT  NA  00h	2	1	1	sub_IMGL_RNA_iPSC_F_NAN_NAN_S_2-1-1_S5_R1_001.fastq.gz	sub_IMGL_RNA_iPSC_F_NAN_NAN_S_2-1-1_S5_R2_001.fastq.gz	/proj/phanstiel_lab/Data/processed/subsamples/rna/PE_100k/subsampled/
+IMGL	iMGL	WT  Ab  24h	1	1	1	sub_IMGL_RNA_MGL_F_Ab_24h_S_1-1-1_S4_R1_001.fastq.gz	sub_IMGL_RNA_MGL_F_Ab_24h_S_1-1-1_S4_R2_001.fastq.gz	/proj/phanstiel_lab/Data/processed/subsamples/rna/PE_100k/subsampled/
+IMGL	iMGL	WT  Ab  24h	2	1	1	sub_IMGL_RNA_MGL_F_Ab_24h_S_2-1-1_S8_R1_001.fastq.gz	sub_IMGL_RNA_MGL_F_Ab_24h_S_2-1-1_S8_R2_001.fastq.gz	/proj/phanstiel_lab/Data/processed/subsamples/rna/PE_100k/subsampled/
+IMGL	iMGL	WT  NA  00h	1	1	1	sub_IMGL_RNA_MGL_F_Control_0h_S_1-1-1_S3_R1_001.fastq.gz	sub_IMGL_RNA_MGL_F_Control_0h_S_1-1-1_S3_R2_001.fastq.gz	/proj/phanstiel_lab/Data/processed/subsamples/rna/PE_100k/subsampled/
+IMGL	iMGL	WT  NA  00h	2	1	1	sub_IMGL_RNA_MGL_F_Control_0h_S_2-1-1_S7_R1_001.fastq.gz	sub_IMGL_RNA_MGL_F_Control_0h_S_2-1-1_S7_R2_001.fastq.gz	/proj/phanstiel_lab/Data/processed/subsamples/rna/PE_100k/subsampled/

@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import pandas as pd
+import glob
+import shutil
+
+##### Load config and sample sheets #####
+configfile: "config/config.yaml"
+
+## Read in samplesheet
+samples = pd.read_table(config["samplesheet"])
+
+## Convert all columns to strings
+samples = samples.astype(str)
+
+## Concatenate the sequencing directory to Read1 and Read2 for full paths
+samples['Read1'] = samples[['Sequencing_Directory', 'Read1']].apply(lambda row: os.path.join(*row), axis=1)
+samples['Read2'] = samples[['Sequencing_Directory', 'Read2']].apply(lambda row: os.path.join(*row), axis=1)
+
+## Concatenate columns to identify which groups to run (i.e. Seq_Rep will be run together)
+samples['id'] = samples[config['mergeBy']].agg('_'.join, axis=1)
+
+## Group by id and extract Read1 & Read2
+read1 = samples.groupby('id')['Read1'].apply(list).to_dict()
+read2 = samples.groupby('id')['Read2'].apply(list).to_dict()
+
+## Define actions on success
+onsuccess:
+    ## Success message
+    print("RNApipe completed successfully! Wahoo!")
+
+##### Define rules #####
+rule all:
+    input:
+        [expand("output/{group}/{group}_dedup_merged_nodups.txt.gz", group=key) for key in splitNames]
