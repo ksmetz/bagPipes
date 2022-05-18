@@ -33,4 +33,16 @@ onsuccess:
 ##### Define rules #####
 rule all:
     input:
-        [expand("output/{group}/{group}_dedup_merged_nodups.txt.gz", group=key) for key in splitNames]
+        "output/test.txt"
+
+rule test:
+	input:
+		read1 = lambda wildcards: samples.loc[wildcards.sample]["Read1"],
+		read2 = lambda wildcards: samples.loc[wildcards.sample]["Read2"]
+	output:
+		test = "output/{sample}.txt" # temp
+	params:
+		dir = "output/",
+		name = '{sample}'
+	shell:
+        'echo {input.read1} {input.read2} >> {params.dir}/{params.name}.txt'
