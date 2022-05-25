@@ -4,12 +4,13 @@
 import pandas as pd
 import glob
 import shutil
+import os
 
 ##### Load config and sample sheets #####
 configfile: "config/config.yaml"
 
 ## Read in samplesheet
-samples = pd.read_table(config["samplesheet"])
+samples = pd.read_csv(config["samplesheet"], sep='\t')
 
 ## Convert all columns to strings
 samples = samples.astype(str)
@@ -19,7 +20,7 @@ samples['Read1'] = samples[['Sequencing_Directory', 'Read1']].apply(lambda row: 
 samples['Read2'] = samples[['Sequencing_Directory', 'Read2']].apply(lambda row: os.path.join(*row), axis=1)
 
 ## Concatenate columns to identify which groups to run (i.e. Seq_Rep will be run together)
-samples['id'] = samples[config['mergeBy']].agg('_'.join, axis=1)
+samples['id'] = samples[config['mergeBy']].apply('_'.join, axis=1)
 
 ## Group by id and extract Read1 & Read2
 read1 = samples.groupby('id')['Read1'].apply(list).to_dict()
@@ -32,17 +33,16 @@ onsuccess:
 
 ##### Define rules #####
 rule all:
-    input:
-        "output/test.txt"
+	input:
+		[expand("output/{group}.txt", group=key) for key in samples['id']]
 
 rule test:
 	input:
-		read1 = lambda wildcards: samples.loc[wildcards.sample]["Read1"],
-		read2 = lambda wildcards: samples.loc[wildcards.sample]["Read2"]
+		read1 = lambda wildcards: read1.get(wildcards.group),
+		read2 = lambda wildcards: read2.get(wildcards.group)
 	output:
-		test = "output/{sample}.txt" # temp
+		test = "output/{group}.txt" # temp
 	params:
-		dir = "output/",
-		name = '{sample}'
+		dir = "output/"
 	shell:
-        'echo {input.read1} {input.read2} >> {params.dir}/{params.name}.txt'
+		'echo {input.read1} {input.read2} >> {params.dir}/{wildcards.group}.txt'
