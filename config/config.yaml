@@ -9,5 +9,6 @@ fileNamesFrom: ['Project', 'Cell_Type', 'Genotype', 'Time', 'Bio_Rep', 'Tech_Rep
 mergeBy: ['Project', 'Cell_Type', 'Genotype', 'Time', 'Bio_Rep', 'Tech_Rep']
 
 ## Genome-specific reference parameters
+salmon: '/proj/phanstiel_lab/References/genomes/GENCODE.v19/salmon_index/default/default'
 fasta: '/proj/seq/data/HG19_UCSC/Sequence/BWAIndex/genome.fa' 
 chromSizes: '/proj/phanstiel_lab/References/chromSizes/hg19_chromSizes.txt'

@@ -38,7 +38,7 @@ onsuccess:
 rule all:
 	input:
 		[expand("output/QC/{sampleName}_{read}_fastqc.{ext}", sampleName=key, read=['R1', 'R2'], ext=['zip', 'html']) for key in samples['sn']],
-		[expand("output/trim/{sampleName}_{read}_{ext}", sampleName=key, read=['R1', 'R2'], ext=['trimmed.fastq.gz', 'trimming_report.txt']) for key in samples['sn']]
+		[expand("output/quant/{sampleName}/quant.sf", sampleName=key) for key in samples['sn']]
 
 rule fastqc:
 	input:
@@ -69,10 +69,10 @@ rule trim:
 		read1 = lambda wildcards: read1.get(wildcards.sampleName),
 		read2 = lambda wildcards: read2.get(wildcards.sampleName)
 	output:
-		"output/trim/{sampleName}_R1_trimmed.fastq.gz", # temp
-		"output/trim/{sampleName}_R2_trimmed.fastq.gz", # temp
 		"output/trim/{sampleName}_R1_trimming_report.txt", # temp
-		"output/trim/{sampleName}_R2_trimming_report.txt" # temp
+		"output/trim/{sampleName}_R2_trimming_report.txt", # temp
+		trim1 = "output/trim/{sampleName}_R1_trimmed.fastq.gz", # temp
+		trim2 = "output/trim/{sampleName}_R2_trimmed.fastq.gz" # temp
 	log:
 		err = 'output/logs/trim_{sampleName}.err',
 		out = 'output/logs/trim_{sampleName}.out'
@@ -86,4 +86,22 @@ rule trim:
 		mv {params.dir}/$(basename {input.read2} .fastq.gz)_val_2.fq.gz  {params.dir}/{wildcards.sampleName}_R2_trimmed.fastq.gz;
 		mv {params.dir}/$(basename {input.read1})_trimming_report.txt  {params.dir}/{wildcards.sampleName}_R1_trimming_report.txt;
 		mv {params.dir}/$(basename {input.read2})_trimming_report.txt  {params.dir}/{wildcards.sampleName}_R2_trimming_report.txt
+		"""
+
+rule quant:
+	input:
+		trim1 = rules.trim.output.trim1,
+		trim2 = rules.trim.output.trim2
+	output:
+		"output/quant/{sampleName}/quant.sf"
+	log:
+		err = 'output/logs/quant_{sampleName}.err',
+		out = 'output/logs/quant_{sampleName}.out'
+	params:
+		dir = "output/quant",
+		index = config['salmon']
+	shell:
+		"""
+		module load salmon/1.4.0;
+		salmon quant --writeUnmappedNames --threads 1 -i {params.index} -l A -1 {input.trim1} -2 {input.trim2} -o {params.dir}/{wildcards.sampleName} 1> {log.out} 2> {log.err};
 		"""
