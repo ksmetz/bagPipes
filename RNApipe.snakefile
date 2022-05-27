@@ -38,7 +38,8 @@ onsuccess:
 rule all:
 	input:
 		[expand("output/QC/{sampleName}_{read}_fastqc.{ext}", sampleName=key, read=['R1', 'R2'], ext=['zip', 'html']) for key in samples['sn']],
-		[expand("output/quant/{sampleName}/quant.sf", sampleName=key) for key in samples['sn']]
+		[expand("output/quant/{sampleName}/quant.sf", sampleName=key) for key in samples['sn']],
+		[expand("output/align/{sampleName}_sorted.{ext}", sampleName=key, ext=['bam', 'bam.bai']) for key in samples['sn']]
 
 rule fastqc:
 	input:
@@ -104,4 +105,27 @@ rule quant:
 		"""
 		module load salmon/1.4.0;
 		salmon quant --writeUnmappedNames --threads 1 -i {params.index} -l A -1 {input.trim1} -2 {input.trim2} -o {params.dir}/{wildcards.sampleName} 1> {log.out} 2> {log.err};
+		"""
+
+rule align:
+	input:
+		trim1 = rules.trim.output.trim1,
+		trim2 = rules.trim.output.trim2
+	output:
+		"output/align/{sampleName}_sorted.bam",
+		"output/align/{sampleName}_sorted.bam.bai",
+		"output/align/{sampleName}_stats.txt"
+	log:
+		err = 'output/logs/align_{sampleName}.err',
+		out = 'output/logs/align_{sampleName}.out'
+	params:
+		dir = "output/align",
+		index = config['hisat2']
+	shell:
+		"""
+		module load hisat2/2.1.0;
+		module load samtools/1.9;
+		hisat2 -q -x {params.index} -1 {input.trim1} -2 {input.trim2} | samtools view -u | samtools sort -o {params.dir}/{wildcards.sampleName}_sorted.bam 1> {log.out} 2> {log.err};
+		samtools flagstat {params.dir}/{wildcards.sampleName}_sorted.bam > {params.dir}/{wildcards.sampleName}_stats.txt 2>> {log.err};
+		samtools index {params.dir}/{wildcards.sampleName}_sorted.bam 1>> {log.out} 2>> {log.err}
 		"""
