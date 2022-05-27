@@ -38,18 +38,21 @@ onsuccess:
 rule all:
 	input:
 		[expand("output/QC/{sampleName}_{read}_fastqc.{ext}", sampleName=key, read=['R1', 'R2'], ext=['zip', 'html']) for key in samples['sn']],
+		# [expand("output/trim/{sampleName}_{read}_{ext}", sampleName=key, read=['R1', 'R2'], ext=['trimming_report.txt', 'trimmed.fastq.gz']) for key in samples['sn']]
 		[expand("output/quant/{sampleName}/quant.sf", sampleName=key) for key in samples['sn']],
-		[expand("output/signal/{sampleName}{ext}", sampleName=key, ext=['.bw', '_fwd.bw', '_rev.bw']) for key in samples['sn']]
+		# [expand("output/align/{sampleName}_{ext}", sampleName=key, ext=['sorted.bam', 'sorted.bam.bai', 'stats.txt']) for key in samples['sn']]
+		[expand("output/signal/unstranded/{sampleName}.bw", sampleName=key) for key in samples['sn']],
+		[expand("output/signal/stranded/{sampleName}_{dir}.bw", sampleName=key, dir=['fwd', 'rev']) for key in samples['sn']]
 
 rule fastqc:
 	input:
-		read1 = lambda wildcards: read1.get(wildcards.sampleName),
-		read2 = lambda wildcards: read2.get(wildcards.sampleName)
+		R1 = lambda wildcards: read1.get(wildcards.sampleName),
+		R2 = lambda wildcards: read2.get(wildcards.sampleName)
 	output:
-		"output/QC/{sampleName}_R1_fastqc.zip", # temp
-		"output/QC/{sampleName}_R2_fastqc.zip", # temp
-		"output/QC/{sampleName}_R1_fastqc.html", # temp
-		"output/QC/{sampleName}_R2_fastqc.html" # temp
+		zip1 = "output/QC/{sampleName}_R1_fastqc.zip", # temp
+		zip2 = "output/QC/{sampleName}_R2_fastqc.zip", # temp
+		html1 = "output/QC/{sampleName}_R1_fastqc.html", # temp
+		html2 = "output/QC/{sampleName}_R2_fastqc.html" # temp
 	log:
 		err = 'output/logs/fastqc_{sampleName}.err',
 		out = 'output/logs/fastqc_{sampleName}.out'
@@ -58,20 +61,20 @@ rule fastqc:
 	shell:
 		"""
 		module load fastqc/0.11.5;
-		fastqc -o {params.dir} {input.read1} {input.read2} 1> {log.out} 2> {log.err};
-		mv {params.dir}/$(basename {input.read1} .fastq.gz)_fastqc.zip  {params.dir}/{wildcards.sampleName}_R1_fastqc.zip;
-		mv {params.dir}/$(basename {input.read2} .fastq.gz)_fastqc.zip  {params.dir}/{wildcards.sampleName}_R2_fastqc.zip;
-		mv {params.dir}/$(basename {input.read1} .fastq.gz)_fastqc.html  {params.dir}/{wildcards.sampleName}_R1_fastqc.html;
-		mv {params.dir}/$(basename {input.read2} .fastq.gz)_fastqc.html  {params.dir}/{wildcards.sampleName}_R2_fastqc.html
+		fastqc -o {params.dir} {input.R1} {input.R2} 1> {log.out} 2> {log.err};
+		mv {params.dir}/$(basename {input.R1} .fastq.gz)_fastqc.zip  {output.zip1};
+		mv {params.dir}/$(basename {input.R2} .fastq.gz)_fastqc.zip  {output.zip2};
+		mv {params.dir}/$(basename {input.R1} .fastq.gz)_fastqc.html  {output.html1};
+		mv {params.dir}/$(basename {input.R2} .fastq.gz)_fastqc.html  {output.html2}
 		"""
 
 rule trim:
 	input:
-		read1 = lambda wildcards: read1.get(wildcards.sampleName),
-		read2 = lambda wildcards: read2.get(wildcards.sampleName)
+		R1 = lambda wildcards: read1.get(wildcards.sampleName),
+		R2 = lambda wildcards: read2.get(wildcards.sampleName)
 	output:
-		"output/trim/{sampleName}_R1_trimming_report.txt", # temp
-		"output/trim/{sampleName}_R2_trimming_report.txt", # temp
+		report1 = "output/trim/{sampleName}_R1_trimming_report.txt", # temp
+		report2 = "output/trim/{sampleName}_R2_trimming_report.txt", # temp
 		trim1 = "output/trim/{sampleName}_R1_trimmed.fastq.gz", # temp
 		trim2 = "output/trim/{sampleName}_R2_trimmed.fastq.gz" # temp
 	log:
@@ -82,11 +85,11 @@ rule trim:
 	shell:
 		"""
 		module load trim_galore/0.4.3;
-		trim_galore -o {params.dir} --paired {input.read1} {input.read2} 1> {log.out} 2> {log.err};
-		mv {params.dir}/$(basename {input.read1} .fastq.gz)_val_1.fq.gz  {params.dir}/{wildcards.sampleName}_R1_trimmed.fastq.gz;
-		mv {params.dir}/$(basename {input.read2} .fastq.gz)_val_2.fq.gz  {params.dir}/{wildcards.sampleName}_R2_trimmed.fastq.gz;
-		mv {params.dir}/$(basename {input.read1})_trimming_report.txt  {params.dir}/{wildcards.sampleName}_R1_trimming_report.txt;
-		mv {params.dir}/$(basename {input.read2})_trimming_report.txt  {params.dir}/{wildcards.sampleName}_R2_trimming_report.txt
+		trim_galore -o {params.dir} --paired {input.R1} {input.R2} 1> {log.out} 2> {log.err};
+		mv {params.dir}/$(basename {input.R1} .fastq.gz)_val_1.fq.gz  {output.trim1};
+		mv {params.dir}/$(basename {input.R2} .fastq.gz)_val_2.fq.gz  {output.trim2};
+		mv {params.dir}/$(basename {input.R1})_trimming_report.txt  {output.report1};
+		mv {params.dir}/$(basename {input.R2})_trimming_report.txt  {output.report2}
 		"""
 
 rule quant:
@@ -94,7 +97,7 @@ rule quant:
 		trim1 = rules.trim.output.trim1,
 		trim2 = rules.trim.output.trim2
 	output:
-		"output/quant/{sampleName}/quant.sf"
+		quant = "output/quant/{sampleName}/quant.sf"
 	log:
 		err = 'output/logs/quant_{sampleName}.err',
 		out = 'output/logs/quant_{sampleName}.out'
@@ -112,40 +115,50 @@ rule align:
 		trim1 = rules.trim.output.trim1,
 		trim2 = rules.trim.output.trim2
 	output:
-		"output/align/{sampleName}_sorted.bam.bai",
-		"output/align/{sampleName}_stats.txt",
+		index = "output/align/{sampleName}_sorted.bam.bai",
+		stats = "output/align/{sampleName}_stats.txt",
 		bam = "output/align/{sampleName}_sorted.bam"
 	log:
 		err = 'output/logs/align_{sampleName}.err',
 		out = 'output/logs/align_{sampleName}.out'
 	params:
-		dir = "output/align",
 		index = config['hisat2']
 	shell:
 		"""
 		module load hisat2/2.1.0;
 		module load samtools/1.9;
-		hisat2 -q -x {params.index} -1 {input.trim1} -2 {input.trim2} | samtools view -u | samtools sort -o {params.dir}/{wildcards.sampleName}_sorted.bam 1> {log.out} 2> {log.err};
-		samtools flagstat {params.dir}/{wildcards.sampleName}_sorted.bam > {params.dir}/{wildcards.sampleName}_stats.txt 2>> {log.err};
-		samtools index {params.dir}/{wildcards.sampleName}_sorted.bam 1>> {log.out} 2>> {log.err}
+		hisat2 -q -x {params.index} -1 {input.trim1} -2 {input.trim2} | samtools view -u | samtools sort -o {output.bam} 1> {log.out} 2> {log.err};
+		samtools flagstat {output.bam} > {output.stats} 2>> {log.err};
+		samtools index {output.bam} 1>> {log.out} 2>> {log.err}
 		"""
 
 rule signal:
 	input:
 		bam = rules.align.output.bam
 	output:
-		"output/signal/{sampleName}.bw",
-		"output/signal/{sampleName}_fwd.bw",
-		"output/signal/{sampleName}_rev.bw"
+		"output/signal/unstranded/{sampleName}.bw"
 	log:
 		err = 'output/logs/signal_{sampleName}.err',
 		out = 'output/logs/signal_{sampleName}.out'
-	params:
-		dir = "output/signal"
 	shell:
 		"""
 		module load deeptools/3.0.1;
-		bamCoverage -b {input.bam} -o {params.dir}/{wildcards.sampleName}.bw 1> {log.out} 2> {log.err};
-		bamCoverage --filterRNAstrand forward -b {input.bam} -o {params.dir}/{wildcards.sampleName}_fwd.bw 1>> {log.out} 2>> {log.err};
-		bamCoverage --filterRNAstrand reverse -b {input.bam} -o {params.dir}/{wildcards.sampleName}_rev.bw 1>> {log.out} 2>> {log.err}
+		bamCoverage -b {input.bam} -o {output} 1> {log.out} 2> {log.err}
 		"""
+
+rule strandedSignal:
+	input:
+		bam = rules.align.output.bam
+	output:
+		fwd = "output/signal/stranded/{sampleName}_fwd.bw",
+		rev = "output/signal/stranded/{sampleName}_rev.bw"
+	log:
+		err = 'output/logs/strandedSignal_{sampleName}.err',
+		out = 'output/logs/strandedSignal_{sampleName}.out'
+	shell:
+		"""
+		module load deeptools/3.0.1;
+		bamCoverage --filterRNAstrand forward -b {input.bam} -o {output.fwd} 1> {log.out} 2> {log.err};
+		bamCoverage --filterRNAstrand reverse -b {input.bam} -o {output.rev} 1>> {log.out} 2>> {log.err}
+		"""
+
