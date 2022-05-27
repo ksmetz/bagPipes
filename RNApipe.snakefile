@@ -39,7 +39,7 @@ rule all:
 	input:
 		[expand("output/QC/{sampleName}_{read}_fastqc.{ext}", sampleName=key, read=['R1', 'R2'], ext=['zip', 'html']) for key in samples['sn']],
 		[expand("output/quant/{sampleName}/quant.sf", sampleName=key) for key in samples['sn']],
-		[expand("output/align/{sampleName}_sorted.{ext}", sampleName=key, ext=['bam', 'bam.bai']) for key in samples['sn']]
+		[expand("output/signal/{sampleName}{ext}", sampleName=key, ext=['.bw', '_fwd.bw', '_rev.bw']) for key in samples['sn']]
 
 rule fastqc:
 	input:
@@ -112,9 +112,9 @@ rule align:
 		trim1 = rules.trim.output.trim1,
 		trim2 = rules.trim.output.trim2
 	output:
-		"output/align/{sampleName}_sorted.bam",
 		"output/align/{sampleName}_sorted.bam.bai",
-		"output/align/{sampleName}_stats.txt"
+		"output/align/{sampleName}_stats.txt",
+		bam = "output/align/{sampleName}_sorted.bam"
 	log:
 		err = 'output/logs/align_{sampleName}.err',
 		out = 'output/logs/align_{sampleName}.out'
@@ -128,4 +128,24 @@ rule align:
 		hisat2 -q -x {params.index} -1 {input.trim1} -2 {input.trim2} | samtools view -u | samtools sort -o {params.dir}/{wildcards.sampleName}_sorted.bam 1> {log.out} 2> {log.err};
 		samtools flagstat {params.dir}/{wildcards.sampleName}_sorted.bam > {params.dir}/{wildcards.sampleName}_stats.txt 2>> {log.err};
 		samtools index {params.dir}/{wildcards.sampleName}_sorted.bam 1>> {log.out} 2>> {log.err}
+		"""
+
+rule signal:
+	input:
+		bam = rules.align.output.bam
+	output:
+		"output/signal/{sampleName}.bw",
+		"output/signal/{sampleName}_fwd.bw",
+		"output/signal/{sampleName}_rev.bw"
+	log:
+		err = 'output/logs/signal_{sampleName}.err',
+		out = 'output/logs/signal_{sampleName}.out'
+	params:
+		dir = "output/signal"
+	shell:
+		"""
+		module load deeptools/3.0.1;
+		bamCoverage -b {input.bam} -o {params.dir}/{wildcards.sampleName}.bw 1> {log.out} 2> {log.err};
+		bamCoverage --filterRNAstrand forward -b {input.bam} -o {params.dir}/{wildcards.sampleName}_fwd.bw 1>> {log.out} 2>> {log.err};
+		bamCoverage --filterRNAstrand reverse -b {input.bam} -o {params.dir}/{wildcards.sampleName}_rev.bw 1>> {log.out} 2>> {log.err}
 		"""
