@@ -37,7 +37,8 @@ onsuccess:
 ##### Define rules #####
 rule all:
 	input:
-		[expand("output/QC/{sampleName}_{read}_fastqc.{ext}", sampleName=key, read=['R1', 'R2'], ext=['zip', 'html']) for key in samples['sn']]
+		[expand("output/QC/{sampleName}_{read}_fastqc.{ext}", sampleName=key, read=['R1', 'R2'], ext=['zip', 'html']) for key in samples['sn']],
+		[expand("output/trim/{sampleName}_{read}_{ext}", sampleName=key, read=['R1', 'R2'], ext=['trimmed.fastq.gz', 'trimming_report.txt']) for key in samples['sn']]
 
 rule fastqc:
 	input:
@@ -63,3 +64,26 @@ rule fastqc:
 		mv {params.dir}/$(basename {input.read2} .fastq.gz)_fastqc.html  {params.dir}/{wildcards.sampleName}_R2_fastqc.html
 		"""
 
+rule trim:
+	input:
+		read1 = lambda wildcards: read1.get(wildcards.sampleName),
+		read2 = lambda wildcards: read2.get(wildcards.sampleName)
+	output:
+		"output/trim/{sampleName}_R1_trimmed.fastq.gz", # temp
+		"output/trim/{sampleName}_R2_trimmed.fastq.gz", # temp
+		"output/trim/{sampleName}_R1_trimming_report.txt", # temp
+		"output/trim/{sampleName}_R2_trimming_report.txt" # temp
+	log:
+		err = 'output/logs/trim_{sampleName}.err',
+		out = 'output/logs/trim_{sampleName}.out'
+	params:
+		dir = "output/trim"
+	shell:
+		"""
+		module load trim_galore/0.4.3;
+		trim_galore -o {params.dir} --paired {input.read1} {input.read2} 1> {log.out} 2> {log.err};
+		mv {params.dir}/$(basename {input.read1} .fastq.gz)_val_1.fq.gz  {params.dir}/{wildcards.sampleName}_R1_trimmed.fastq.gz;
+		mv {params.dir}/$(basename {input.read2} .fastq.gz)_val_2.fq.gz  {params.dir}/{wildcards.sampleName}_R2_trimmed.fastq.gz;
+		mv {params.dir}/$(basename {input.read1})_trimming_report.txt  {params.dir}/{wildcards.sampleName}_R1_trimming_report.txt;
+		mv {params.dir}/$(basename {input.read2})_trimming_report.txt  {params.dir}/{wildcards.sampleName}_R2_trimming_report.txt
+		"""
