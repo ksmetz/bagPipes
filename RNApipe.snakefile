@@ -47,7 +47,8 @@ rule all:
 		# [expand("output/align/{sampleName}_{ext}", sampleName=key, ext=['sorted.bam', 'sorted.bam.bai', 'stats.txt']) for key in samples['sn']]
 		[expand("output/signal/unstranded/{sampleName}.bw", sampleName=key) for key in samples['sn']],
 		[expand("output/signal/stranded/{sampleName}_{dir}.bw", sampleName=key, dir=['fwd', 'rev']) for key in samples['sn']],
-		("output/QC/{name}_multiqc_report.html").format(name=runName)
+		("output/QC/{name}_multiqc_report.html").format(name=runName),
+		("output/quant/{name}_tximport.rds").format(name=runName)
 
 rule fastqc:
 	input:
@@ -187,11 +188,17 @@ rule multiqc:
 		mv output/QC/multiqc_data output/QC/{params.name}_multiqc_data
 		"""
 
-# rule tximport:
-# 	input:
-# 		lambda wildcards: ['output/quant/{sampleName}/quant.sf'.format(sampleName=key) for key in samples['sn']]
-# 		# 				  [expand("output/quant/{sampleName}/quant.sf", sampleName=key) for key in samples['sn']],
-# 		# lambda wildcards: ['output/{group}/{group}_sort_split{splitName}.sort.txt'.format(group=wildcards.group, splitName=value) for value in splitNames[wildcards.group]]
-# 		# "output/quant/{sampleName}/quant.sf"
-# 	output:
-# 		"output/QC/"
+rule tximport:
+	input:
+		[expand("output/quant/{sampleName}/quant.sf", sampleName=key) for key in samples['sn']]
+	output:
+		("output/quant/{name}_tximport.rds").format(name=runName)
+	params:
+		samplesheet = config["samplesheet"],
+		gtf = config['gtf'],
+		name = runName
+	shell:
+		"""
+		module load r/3.3.1;
+		Rscript ./scripts/txImporter.R {params.samplesheet} {params.gtf} output/quant {params.name}
+		"""
