@@ -3,3 +3,4 @@ env
 output
 *.out
 fullSamplesheet.txt
+scripts/__pycache__

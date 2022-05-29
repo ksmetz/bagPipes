@@ -5,6 +5,7 @@ import pandas as pd
 import glob
 import shutil
 import os
+from scripts.namer import namer
 
 ##### Load config and sample sheets #####
 configfile: "config/config.yaml"
@@ -25,6 +26,9 @@ samples['id'] = samples[config['mergeBy']].apply('_'.join, axis=1)
 ## Set sample names
 samples['sn'] = samples[config['fileNamesFrom']].apply('_'.join, axis=1)
 
+## Set run summary name using helper script
+runName = namer(samples, config['fileNamesFrom'])
+
 ## Group by id and extract Read1 & Read2
 read1 = samples.groupby('id')['Read1'].apply(list).to_dict()
 read2 = samples.groupby('id')['Read2'].apply(list).to_dict()
@@ -42,7 +46,8 @@ rule all:
 		[expand("output/quant/{sampleName}/quant.sf", sampleName=key) for key in samples['sn']],
 		# [expand("output/align/{sampleName}_{ext}", sampleName=key, ext=['sorted.bam', 'sorted.bam.bai', 'stats.txt']) for key in samples['sn']]
 		[expand("output/signal/unstranded/{sampleName}.bw", sampleName=key) for key in samples['sn']],
-		[expand("output/signal/stranded/{sampleName}_{dir}.bw", sampleName=key, dir=['fwd', 'rev']) for key in samples['sn']]
+		[expand("output/signal/stranded/{sampleName}_{dir}.bw", sampleName=key, dir=['fwd', 'rev']) for key in samples['sn']],
+		("output/QC/{name}_multiqc_report.html").format(name=runName)
 
 rule fastqc:
 	input:
@@ -162,3 +167,31 @@ rule strandedSignal:
 		bamCoverage --filterRNAstrand reverse -b {input.bam} -o {output.rev} 1>> {log.out} 2>> {log.err}
 		"""
 
+rule multiqc:
+	input:
+		# lambda wildcards: ['output/{group}/{group}_sort_split{splitName}.sort.txt'.format(group=wildcards.group, splitName=value) for value in splitNames[wildcards.group]]
+		[expand("output/QC/{sampleName}_{read}_fastqc.{ext}", sampleName=key, read=['R1', 'R2'], ext=['zip', 'html']) for key in samples['sn']],
+		[expand("output/trim/{sampleName}_{read}_{ext}", sampleName=key, read=['R1', 'R2'], ext=['trimming_report.txt', 'trimmed.fastq.gz']) for key in samples['sn']],
+		[expand("output/quant/{sampleName}/quant.sf", sampleName=key) for key in samples['sn']],
+		[expand("output/align/{sampleName}_{ext}", sampleName=key, ext=['sorted.bam', 'sorted.bam.bai', 'stats.txt']) for key in samples['sn']],
+		[expand("output/signal/unstranded/{sampleName}.bw", sampleName=key) for key in samples['sn']],
+		[expand("output/signal/stranded/{sampleName}_{dir}.bw", sampleName=key, dir=['fwd', 'rev']) for key in samples['sn']]
+	output:
+		("output/QC/{name}_multiqc_report.html").format(name=runName)
+	params:
+		name = runName
+	shell:
+		"""
+		multiqc -f output/* -o output/QC
+		mv output/QC/multiqc_report.html output/QC/{params.name}_multiqc_report.html
+		mv output/QC/multiqc_data output/QC/{params.name}_multiqc_data
+		"""
+
+# rule tximport:
+# 	input:
+# 		lambda wildcards: ['output/quant/{sampleName}/quant.sf'.format(sampleName=key) for key in samples['sn']]
+# 		# 				  [expand("output/quant/{sampleName}/quant.sf", sampleName=key) for key in samples['sn']],
+# 		# lambda wildcards: ['output/{group}/{group}_sort_split{splitName}.sort.txt'.format(group=wildcards.group, splitName=value) for value in splitNames[wildcards.group]]
+# 		# "output/quant/{sampleName}/quant.sf"
+# 	output:
+# 		"output/QC/"
