@@ -17,7 +17,7 @@ sbatch RNApipeCore.sh
 
 ## Workflow
 -----------------------
-![](dags/RNApipeDAG.pdf)
+![](dags/RNApipeCoreDAG.png)
 
 ## Unlocking
 -----------------------
@@ -28,7 +28,6 @@ sbatch RNApipeCore.sh
 ## To-do
 -----------------------
 RNApipe
-- Add benchmarking
 - Add adjustable version #s
 - Add merge workflow
 

@@ -36,8 +36,8 @@ read2 = samples.groupby('sn')['Read2'].apply(list).to_dict()
 
 ## Define actions on success
 onsuccess:
-    ## Success message
-    print("RNApipe completed successfully! Wahoo!")
+	## Success message
+	print("RNApipe completed successfully! Wahoo!")
 
 ##### Define rules #####
 rule all:
@@ -65,6 +65,8 @@ rule fastqc:
 		out = 'output/logs/fastqc_{sampleName}.out'
 	params:
 		dir = "output/QC"
+	benchmark: 
+		'output/benchmarks/fastqc_{sampleName}.tsv'
 	shell:
 		"""
 		module load fastqc/0.11.5;
@@ -87,6 +89,8 @@ rule trim:
 	log:
 		err = 'output/logs/trim_{sampleName}.err',
 		out = 'output/logs/trim_{sampleName}.out'
+	benchmark: 
+		'output/benchmarks/trim_{sampleName}.tsv'
 	params:
 		dir = "output/trim"
 	shell:
@@ -108,6 +112,8 @@ rule quant:
 	log:
 		err = 'output/logs/quant_{sampleName}.err',
 		out = 'output/logs/quant_{sampleName}.out'
+	benchmark: 
+		'output/benchmarks/quant_{sampleName}.tsv'
 	params:
 		dir = "output/quant",
 		index = config['salmon']
@@ -128,6 +134,8 @@ rule align:
 	log:
 		err = 'output/logs/align_{sampleName}.err',
 		out = 'output/logs/align_{sampleName}.out'
+	benchmark: 
+		'output/benchmarks/align_{sampleName}.tsv'
 	params:
 		index = config['hisat2']
 	shell:
@@ -147,6 +155,8 @@ rule signal:
 	log:
 		err = 'output/logs/signal_{sampleName}.err',
 		out = 'output/logs/signal_{sampleName}.out'
+	benchmark: 
+		'output/benchmarks/signal_{sampleName}.tsv'
 	shell:
 		"""
 		module load deeptools/3.0.1;
@@ -162,6 +172,8 @@ rule strandedSignal:
 	log:
 		err = 'output/logs/strandedSignal_{sampleName}.err',
 		out = 'output/logs/strandedSignal_{sampleName}.out'
+	benchmark: 
+		'output/benchmarks/strandedSignal_{sampleName}.tsv'
 	shell:
 		"""
 		module load deeptools/3.0.1;
@@ -185,6 +197,8 @@ rule multiqc:
 	log:
 		err = 'output/logs/multiqc.err',
 		out = 'output/logs/multiqc.out'
+	benchmark: 
+		'output/benchmarks/multiqc.tsv'
 	shell:
 		"""
 		module load multiqc/1.5;
@@ -205,6 +219,8 @@ rule tximport:
 	log:
 		err = 'output/logs/tximport.err',
 		out = 'output/logs/tximport.out'
+	benchmark: 
+		'output/benchmarks/tximport.tsv'
 	shell:
 		"""
 		module load r/3.3.1;
