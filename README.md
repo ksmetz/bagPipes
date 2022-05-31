@@ -9,4 +9,30 @@ bagPipes includes pipelines for paired-end RNA-seq data, ChIP-seq/CUT&RUN data, 
 
 This pipeline is inteded to be run on the UNC HPC longleaf cluster with SLURM.
 
+## Running
+-----------------------
+```bash
+sbatch RNApipeCore.sh
+```
+
+## Workflow
+-----------------------
+![](dags/RNApipeDAG.pdf)
+
+## Unlocking
+-----------------------
+```bash
+./unlock.sh RNApipeCore
+```
+
+## To-do
+-----------------------
+RNApipe
+- Add benchmarking
+- Add adjustable version #s
+- Add merge workflow
+
+ChIPpipe + ATACpipe
+- Create
+
 **This pipeline is still in development. More information to come upon completion!**

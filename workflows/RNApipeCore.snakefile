@@ -5,7 +5,7 @@ import pandas as pd
 import glob
 import shutil
 import os
-from scripts.namer import namer
+from utils.namer import namer
 
 ##### Load config and sample sheets #####
 configfile: "config/config.yaml"
@@ -20,18 +20,19 @@ samples = samples.astype(str)
 samples['Read1'] = samples[['Sequencing_Directory', 'Read1']].apply(lambda row: os.path.join(*row), axis=1)
 samples['Read2'] = samples[['Sequencing_Directory', 'Read2']].apply(lambda row: os.path.join(*row), axis=1)
 
-## Concatenate columns to identify which groups to run (i.e. Seq_Rep will be run together)
-samples['id'] = samples[config['mergeBy']].apply('_'.join, axis=1)
-
 ## Set sample names
 samples['sn'] = samples[config['fileNamesFrom']].apply('_'.join, axis=1)
 
 ## Set run summary name using helper script
 runName = namer(samples, config['fileNamesFrom'])
 
+## Write samplesheet with sampleNames to new file
+newSamplesheet = ('output/{name}_RNApipeSamplesheet.txt').format(name = runName)
+samples.to_csv(newSamplesheet, sep="\t", index=False)
+
 ## Group by id and extract Read1 & Read2
-read1 = samples.groupby('id')['Read1'].apply(list).to_dict()
-read2 = samples.groupby('id')['Read2'].apply(list).to_dict()
+read1 = samples.groupby('sn')['Read1'].apply(list).to_dict()
+read2 = samples.groupby('sn')['Read2'].apply(list).to_dict()
 
 ## Define actions on success
 onsuccess:
@@ -41,12 +42,12 @@ onsuccess:
 ##### Define rules #####
 rule all:
 	input:
-		[expand("output/QC/{sampleName}_{read}_fastqc.{ext}", sampleName=key, read=['R1', 'R2'], ext=['zip', 'html']) for key in samples['sn']],
+		# [expand("output/QC/{sampleName}_{read}_fastqc.{ext}", sampleName=key, read=['R1', 'R2'], ext=['zip', 'html']) for key in samples['sn']],
 		# [expand("output/trim/{sampleName}_{read}_{ext}", sampleName=key, read=['R1', 'R2'], ext=['trimming_report.txt', 'trimmed.fastq.gz']) for key in samples['sn']]
-		[expand("output/quant/{sampleName}/quant.sf", sampleName=key) for key in samples['sn']],
+		# [expand("output/quant/{sampleName}/quant.sf", sampleName=key) for key in samples['sn']],
 		# [expand("output/align/{sampleName}_{ext}", sampleName=key, ext=['sorted.bam', 'sorted.bam.bai', 'stats.txt']) for key in samples['sn']]
-		[expand("output/signal/unstranded/{sampleName}.bw", sampleName=key) for key in samples['sn']],
-		[expand("output/signal/stranded/{sampleName}_{dir}.bw", sampleName=key, dir=['fwd', 'rev']) for key in samples['sn']],
+		# [expand("output/signal/unstranded/{sampleName}.bw", sampleName=key) for key in samples['sn']],
+		# [expand("output/signal/stranded/{sampleName}_{dir}.bw", sampleName=key, dir=['fwd', 'rev']) for key in samples['sn']],
 		("output/QC/{name}_multiqc_report.html").format(name=runName),
 		("output/quant/{name}_tximport.rds").format(name=runName)
 
@@ -55,10 +56,10 @@ rule fastqc:
 		R1 = lambda wildcards: read1.get(wildcards.sampleName),
 		R2 = lambda wildcards: read2.get(wildcards.sampleName)
 	output:
-		zip1 = "output/QC/{sampleName}_R1_fastqc.zip", # temp
-		zip2 = "output/QC/{sampleName}_R2_fastqc.zip", # temp
-		html1 = "output/QC/{sampleName}_R1_fastqc.html", # temp
-		html2 = "output/QC/{sampleName}_R2_fastqc.html" # temp
+		zip1 = temp("output/QC/{sampleName}_R1_fastqc.zip"), # temp
+		zip2 = temp("output/QC/{sampleName}_R2_fastqc.zip"), # temp
+		html1 = temp("output/QC/{sampleName}_R1_fastqc.html"), # temp
+		html2 = temp("output/QC/{sampleName}_R2_fastqc.html") # temp
 	log:
 		err = 'output/logs/fastqc_{sampleName}.err',
 		out = 'output/logs/fastqc_{sampleName}.out'
@@ -79,10 +80,10 @@ rule trim:
 		R1 = lambda wildcards: read1.get(wildcards.sampleName),
 		R2 = lambda wildcards: read2.get(wildcards.sampleName)
 	output:
-		report1 = "output/trim/{sampleName}_R1_trimming_report.txt", # temp
-		report2 = "output/trim/{sampleName}_R2_trimming_report.txt", # temp
-		trim1 = "output/trim/{sampleName}_R1_trimmed.fastq.gz", # temp
-		trim2 = "output/trim/{sampleName}_R2_trimmed.fastq.gz" # temp
+		report1 = temp("output/trim/{sampleName}_R1_trimming_report.txt"), # temp
+		report2 = temp("output/trim/{sampleName}_R2_trimming_report.txt"), # temp
+		trim1 = temp("output/trim/{sampleName}_R1_trimmed.fastq.gz"), # temp
+		trim2 = temp("output/trim/{sampleName}_R2_trimmed.fastq.gz") # temp
 	log:
 		err = 'output/logs/trim_{sampleName}.err',
 		out = 'output/logs/trim_{sampleName}.out'
@@ -181,9 +182,13 @@ rule multiqc:
 		("output/QC/{name}_multiqc_report.html").format(name=runName)
 	params:
 		name = runName
+	log:
+		err = 'output/logs/multiqc.err',
+		out = 'output/logs/multiqc.out'
 	shell:
 		"""
-		multiqc -f output/* -o output/QC
+		module load multiqc/1.5;
+		multiqc -f output/* -o output/QC 1> {log.out} 2> {log.err}
 		mv output/QC/multiqc_report.html output/QC/{params.name}_multiqc_report.html
 		mv output/QC/multiqc_data output/QC/{params.name}_multiqc_data
 		"""
@@ -194,11 +199,14 @@ rule tximport:
 	output:
 		("output/quant/{name}_tximport.rds").format(name=runName)
 	params:
-		samplesheet = config["samplesheet"],
+		samplesheet = newSamplesheet,
 		gtf = config['gtf'],
 		name = runName
+	log:
+		err = 'output/logs/tximport.err',
+		out = 'output/logs/tximport.out'
 	shell:
 		"""
 		module load r/3.3.1;
-		Rscript ./scripts/txImporter.R {params.samplesheet} {params.gtf} output/quant {params.name}
+		Rscript workflows/utils/txImporter.R {params.samplesheet} {params.gtf} output/quant {params.name} 1> {log.out} 2> {log.err}
 		"""

@@ -6,7 +6,6 @@
 ### INITIALIZE ===================================
 ## Load required libraries
 library(tximport)
-library(yaml)
 library(GenomicFeatures)
 
 ## Parse inputs (1) project name and (2) the path to the relevant transcriptome annotation file
@@ -31,13 +30,10 @@ if (length(args)!=4)
 ## Read in samplesheet file, name settings
 samplesheet <- read.delim(samplesheet, sep = "\t", header=T, stringsAsFactors=F)
 samplesheet <- apply(samplesheet, 2, as.character)
-config <- read_yaml("./config/config.yaml")
-fileNamesFrom <- config$fileNamesFrom
 
 ## Find salmon files 
-samples <- apply(samplesheet[, fileNamesFrom], 1, paste, collapse="_")
-files <- file.path(quantDir, samples, "quant.sf")
-names(files) <- samples
+files <- file.path(quantDir, samplesheet[, "sn"], "quant.sf")
+names(files) <- samplesheet["sn"]
 
 
 ### RUN ===================================
