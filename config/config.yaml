@@ -6,7 +6,7 @@ samplesheet: 'samplesheet.txt'
 fileNamesFrom: ['Project', 'Cell_Type', 'Genotype', 'Time', 'Bio_Rep', 'Tech_Rep']
 
 ## List columns to group (i.e. any columns left out will become part of the same group)
-mergeBy: ['Project', 'Cell_Type', 'Genotype', 'Time', 'Bio_Rep', 'Tech_Rep']
+mergeBy: ['Project', 'Cell_Type', 'Genotype', 'Time']
 
 ## Genome-specific reference parameters
 salmon: '/proj/seq/data/salmon_RNAseq_genomes/hg38_cdna/salmon_index/default'
