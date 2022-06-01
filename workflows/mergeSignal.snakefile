@@ -6,9 +6,6 @@ import glob
 import shutil
 import os
 
-##### Load config and sample sheets #####
-configfile: "config/config.yaml"
-
 ## Read in samplesheet
 samples = pd.read_csv(config["samplesheet"], sep='\t')
 
@@ -18,11 +15,25 @@ samples = samples.astype(str)
 ## Set sample names
 samples['sn'] = samples[config['fileNamesFrom']].apply('_'.join, axis=1)
 
-## Merge according to mergeBy parameter, define merge name (mn)
-samples['mn'] = samples[config['mergeBy']].agg('_'.join, axis=1)
+## Conditional output - check that mergeBy is valid
+outfiles = list()
 
-## Build dictionary of merged BAM files
-mergeSamples = samples.groupby('mn')['sn'].apply(list).to_dict()
+if config['mergeBy'] == config['fileNamesFrom']:
+	"None"
+elif config['mergeBy'] == '':
+	"None"
+else:
+	## Merge according to mergeBy parameter, define merge name (mn)
+	samples['mn'] = samples[config['mergeBy']].agg('_'.join, axis=1)
+
+	## Build dictionary of merged BAM files
+	mergeSamples = samples.groupby('mn')['sn'].apply(list).to_dict()
+
+	## Define rule all outputs
+	outfiles.append([expand("output/mergeAlign/{mergeName}_{ext}", mergeName=key, ext=['sorted.bam', 'sorted.bam.bai', 'stats.txt']) for key in mergeSamples])
+	outfiles.append([expand("output/mergeSignal/unstranded/{mergeName}.bw", mergeName=key) for key in mergeSamples])
+	if config['stranded'] == True:
+		outfiles.append([expand("output/mergeSignal/stranded/{mergeName}_{dir}.bw", mergeName=key, dir=['fwd', 'rev']) for key in mergeSamples])
 
 ## Define actions on success
 onsuccess:
@@ -32,13 +43,7 @@ onsuccess:
 ##### Define rules #####
 rule all:
 	input:
-		[expand("output/mergeAlign/{mergeName}_{ext}", mergeName=key, ext=['sorted.bam', 'sorted.bam.bai', 'stats.txt']) for key in mergeSamples],
-		# [expand("output/QC/{sampleName}_{read}_fastqc.{ext}", sampleName=key, read=['R1', 'R2'], ext=['zip', 'html']) for key in samples['sn']],
-		# [expand("output/trim/{sampleName}_{read}_{ext}", sampleName=key, read=['R1', 'R2'], ext=['trimming_report.txt', 'trimmed.fastq.gz']) for key in samples['sn']]
-		# [expand("output/quant/{sampleName}/quant.sf", sampleName=key) for key in samples['sn']],
-		# [expand("output/align/{sampleName}_{ext}", sampleName=key, ext=['sorted.bam', 'sorted.bam.bai', 'stats.txt']) for key in samples['sn']]
-		[expand("output/mergeSignal/unstranded/{mergeName}.bw", mergeName=key) for key in mergeSamples],
-		[expand("output/mergeSignal/stranded/{mergeName}_{dir}.bw", mergeName=key, dir=['fwd', 'rev']) for key in mergeSamples]
+		outfiles
 
 rule mergeAlign:
 	input:

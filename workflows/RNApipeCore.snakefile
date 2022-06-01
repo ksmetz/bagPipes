@@ -7,9 +7,6 @@ import shutil
 import os
 from utils.namer import namer
 
-##### Load config and sample sheets #####
-configfile: "config/config.yaml"
-
 ## Read in samplesheet
 samples = pd.read_csv(config["samplesheet"], sep='\t')
 
@@ -33,6 +30,11 @@ samples.to_csv(newSamplesheet, sep="\t", index=False)
 ## Group by id and extract Read1 & Read2
 read1 = samples.groupby('sn')['Read1'].apply(list).to_dict()
 read2 = samples.groupby('sn')['Read2'].apply(list).to_dict()
+
+## Identify optional outputs (stranded signal tracks)
+optionalOutfiles = list()
+if config['stranded'] == True:
+	optionalOutfiles.append([expand("output/signal/stranded/{sampleName}_{dir}.bw", sampleName=key, dir=['fwd', 'rev']) for key in samples['sn']])
 
 ## Define actions on success
 onsuccess:
@@ -183,13 +185,12 @@ rule strandedSignal:
 
 rule multiqc:
 	input:
-		# lambda wildcards: ['output/{group}/{group}_sort_split{splitName}.sort.txt'.format(group=wildcards.group, splitName=value) for value in splitNames[wildcards.group]]
 		[expand("output/QC/{sampleName}_{read}_fastqc.{ext}", sampleName=key, read=['R1', 'R2'], ext=['zip', 'html']) for key in samples['sn']],
 		[expand("output/trim/{sampleName}_{read}_{ext}", sampleName=key, read=['R1', 'R2'], ext=['trimming_report.txt', 'trimmed.fastq.gz']) for key in samples['sn']],
 		[expand("output/quant/{sampleName}/quant.sf", sampleName=key) for key in samples['sn']],
 		[expand("output/align/{sampleName}_{ext}", sampleName=key, ext=['sorted.bam', 'sorted.bam.bai', 'stats.txt']) for key in samples['sn']],
 		[expand("output/signal/unstranded/{sampleName}.bw", sampleName=key) for key in samples['sn']],
-		[expand("output/signal/stranded/{sampleName}_{dir}.bw", sampleName=key, dir=['fwd', 'rev']) for key in samples['sn']]
+		optionalOutfiles
 	output:
 		("output/QC/{name}_multiqc_report.html").format(name=runName)
 	params:
