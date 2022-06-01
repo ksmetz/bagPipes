@@ -42,7 +42,7 @@ Use this command when you want to delete a previously generated output and re-ru
 ## To-do
 -----------------------
 **RNApipe**
-- Make `fastqc` rule more robust to different file extensions (currently hardcoded to accept `.fastq.gz` only)
+- Make `fastqc` rule more robust to different file extensions (currently hardcoded to accept `.fastq.gz` only; new param in config?)
 - Make creation of the samplesheet a rule
 - (Optional) Make output for quant rule (Salmon) accept the directories themselves as outputs
 - Consider trying to incorporate the mergeSignal into RNApipeCore 

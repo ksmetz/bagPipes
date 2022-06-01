@@ -18,7 +18,8 @@ case $1 in
     
     'RNApipeCore' | 'RNAcore' | 'rnaCore')
             ## Unlock snakemake workflow
-            snakemake -j 100 --unlock -s workflows/RNApipeCore.snakefile --cores 1
+            snakemake -j 100 --unlock -s workflows/RNApipeCore.snakefile --cores 1 --configfile ./config/RNAconfig.yaml
+            snakemake -j 100 --unlock -s workflows/mergeSignal.snakefile --cores 1 --configfile ./config/RNAconfig.yaml
             ;;
 esac
 
