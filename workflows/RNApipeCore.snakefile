@@ -66,12 +66,13 @@ rule fastqc:
 		err = 'output/logs/fastqc_{sampleName}.err',
 		out = 'output/logs/fastqc_{sampleName}.out'
 	params:
-		dir = "output/QC"
+		dir = "output/QC",
+		version = config['fastqcVers']
 	benchmark: 
 		'output/benchmarks/fastqc_{sampleName}.tsv'
 	shell:
 		"""
-		module load fastqc/0.11.5;
+		module load fastqc/{params.version};
 		fastqc -o {params.dir} {input.R1} {input.R2} 1> {log.out} 2> {log.err};
 		mv {params.dir}/$(basename {input.R1} .fastq.gz)_fastqc.zip  {output.zip1};
 		mv {params.dir}/$(basename {input.R2} .fastq.gz)_fastqc.zip  {output.zip2};
@@ -94,10 +95,11 @@ rule trim:
 	benchmark: 
 		'output/benchmarks/trim_{sampleName}.tsv'
 	params:
-		dir = "output/trim"
+		dir = "output/trim",
+		version = config['trimVers']
 	shell:
 		"""
-		module load trim_galore/0.4.3;
+		module load trim_galore/{params.version};
 		trim_galore -o {params.dir} --paired {input.R1} {input.R2} 1> {log.out} 2> {log.err};
 		mv {params.dir}/$(basename {input.R1} .fastq.gz)_val_1.fq.gz  {output.trim1};
 		mv {params.dir}/$(basename {input.R2} .fastq.gz)_val_2.fq.gz  {output.trim2};
@@ -118,10 +120,11 @@ rule quant:
 		'output/benchmarks/quant_{sampleName}.tsv'
 	params:
 		dir = "output/quant",
-		index = config['salmon']
+		index = config['salmon'],
+		version = config['salmonVers']		
 	shell:
 		"""
-		module load salmon/1.4.0;
+		module load salmon/{params.version};
 		salmon quant --writeUnmappedNames --threads 1 -i {params.index} -l A -1 {input.trim1} -2 {input.trim2} -o {params.dir}/{wildcards.sampleName} 1> {log.out} 2> {log.err};
 		"""
 
@@ -139,11 +142,13 @@ rule align:
 	benchmark: 
 		'output/benchmarks/align_{sampleName}.tsv'
 	params:
-		index = config['hisat2']
+		index = config['hisat2'],
+		hisatVersion = config['hisatVers'],
+		samtoolsVersion = config['samtoolsVers']
 	shell:
 		"""
-		module load hisat2/2.1.0;
-		module load samtools/1.9;
+		module load hisat2/{params.hisatVersion};
+		module load samtools/{params.samtoolsVersion};
 		hisat2 -q -x {params.index} -1 {input.trim1} -2 {input.trim2} | samtools view -u | samtools sort -o {output.bam} 1> {log.out} 2> {log.err};
 		samtools flagstat {output.bam} > {output.stats} 2>> {log.err};
 		samtools index {output.bam} 1>> {log.out} 2>> {log.err}
@@ -159,9 +164,11 @@ rule signal:
 		out = 'output/logs/signal_{sampleName}.out'
 	benchmark: 
 		'output/benchmarks/signal_{sampleName}.tsv'
+	params:
+		version = config['deeptoolsVers']
 	shell:
 		"""
-		module load deeptools/3.0.1;
+		module load deeptools/{params.version};
 		bamCoverage -b {input.bam} -o {output} 1> {log.out} 2> {log.err}
 		"""
 
@@ -176,9 +183,11 @@ rule strandedSignal:
 		out = 'output/logs/strandedSignal_{sampleName}.out'
 	benchmark: 
 		'output/benchmarks/strandedSignal_{sampleName}.tsv'
+	params:
+		version = config['deeptoolsVers']
 	shell:
 		"""
-		module load deeptools/3.0.1;
+		module load deeptools/{params.version};
 		bamCoverage --filterRNAstrand forward -b {input.bam} -o {output.fwd} 1> {log.out} 2> {log.err};
 		bamCoverage --filterRNAstrand reverse -b {input.bam} -o {output.rev} 1>> {log.out} 2>> {log.err}
 		"""
@@ -194,7 +203,8 @@ rule multiqc:
 	output:
 		("output/QC/{name}_multiqc_report.html").format(name=runName)
 	params:
-		name = runName
+		name = runName,
+		version = config['multiqcVers']
 	log:
 		err = 'output/logs/multiqc.err',
 		out = 'output/logs/multiqc.out'
@@ -202,7 +212,7 @@ rule multiqc:
 		'output/benchmarks/multiqc.tsv'
 	shell:
 		"""
-		module load multiqc/1.5;
+		module load multiqc/{params.version};
 		multiqc -f output/* -o output/QC 1> {log.out} 2> {log.err}
 		mv output/QC/multiqc_report.html output/QC/{params.name}_multiqc_report.html
 		mv output/QC/multiqc_data output/QC/{params.name}_multiqc_data
@@ -216,7 +226,8 @@ rule tximport:
 	params:
 		samplesheet = newSamplesheet,
 		gtf = config['gtf'],
-		name = runName
+		name = runName,
+		version = config['rVers']
 	log:
 		err = 'output/logs/tximport.err',
 		out = 'output/logs/tximport.out'
@@ -224,6 +235,6 @@ rule tximport:
 		'output/benchmarks/tximport.tsv'
 	shell:
 		"""
-		module load r/3.3.1;
+		module load r/{params.version};
 		Rscript workflows/utils/txImporter.R {params.samplesheet} {params.gtf} output/quant {params.name} 1> {log.out} 2> {log.err}
 		"""

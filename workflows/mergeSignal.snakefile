@@ -58,9 +58,11 @@ rule mergeAlign:
 		out = 'output/logs/mergeAlign_{mergeName}.out'
 	benchmark: 
 		'output/benchmarks/mergeAlign_{mergeName}.tsv'
+	params:
+		version = config['samtoolsVers']
 	shell:
 		"""
-		module load samtools/1.9;
+		module load samtools/{params.version};
 		samtools merge {output.bam} {input.bams} 1>> {log.out} 2>> {log.err};
 		samtools flagstat {output.bam} > {output.stats} 2>> {log.err};
 		samtools index {output.bam} 1>> {log.out} 2>> {log.err}
@@ -76,9 +78,11 @@ rule mergeSignal:
 		out = 'output/logs/mergeSignal_{mergeName}.out'
 	benchmark: 
 		'output/benchmarks/mergeSignal_{mergeName}.tsv'
+	params:
+		version = config['deeptoolsVers']
 	shell:
 		"""
-		module load deeptools/3.0.1;
+		module load deeptools/{params.version};
 		bamCoverage -b {input.bam} -o {output} 1> {log.out} 2> {log.err}
 		"""
 
@@ -93,9 +97,11 @@ rule mergeStrandedSignal:
 		out = 'output/logs/mergeStrandedSignal_{mergeName}.out'
 	benchmark: 
 		'output/benchmarks/mergeStrandedSignal_{mergeName}.tsv'
+	params:
+		version = config['deeptoolsVers']
 	shell:
 		"""
-		module load deeptools/3.0.1;
+		module load deeptools/{params.version};
 		bamCoverage --filterRNAstrand forward -b {input.bam} -o {output.fwd} 1> {log.out} 2> {log.err};
 		bamCoverage --filterRNAstrand reverse -b {input.bam} -o {output.rev} 1>> {log.out} 2>> {log.err}
 		"""

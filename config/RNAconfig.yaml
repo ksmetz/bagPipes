@@ -16,3 +16,13 @@ stranded: True # False
 salmon: '/proj/seq/data/salmon_RNAseq_genomes/hg38_cdna/salmon_index/default'
 hisat2: '/proj/seq/data/hg38_UCSC/Sequence/HISAT2Index/genome'
 gtf: '/proj/seq/data/GRCh38_GENCODE/gencode.v32.primary_assembly.annotation.gtf'
+
+## Software versions
+fastqcVers: "0.11.5"
+trimVers: "0.4.3"
+salmonVers: "1.4.0"
+hisatVers: "2.1.0"
+samtoolsVers: "1.9"
+deeptoolsVers: "3.0.1"
+multiqcVers: "1.5" 
+rVers: "3.3.1"
