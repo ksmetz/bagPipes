@@ -32,6 +32,14 @@ sbatch RNApipe.sh
 -----------------------
 Follow these steps to create merged signal tracks and alignment files. Requires existing `.bam` and `.bai` files for individual samples from a core run. Determines merging using the `mergeBy` parameter in `config/config.yaml`.  
 
+## Benchmarking
+-----------------------
+Run the `benchmarking.py` script within `workflows/utils` in order to summarize all existing benchmark files.
+```
+module load python/3.6.6
+python3 ./workflows/utils/benchmarking.py
+```
+
 ## Unlocking
 -----------------------
 Use this command when you want to delete a previously generated output and re-run.

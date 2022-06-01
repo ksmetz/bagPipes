@@ -1,0 +1,5 @@
+Project	Cell_Type	Target	Treatment	Time	Bio_Rep	Tech_Rep	Seq_Rep	Read1	Read2	Sequencing_Directory
+MOMA	THP1	CTCF	PMA	72h	1	1	1	sub_CTCF_macrophage1_1.fastq.gz	sub_CTCF_macrophage1_2.fastq.gz	/proj/phanstiel_lab/Data/processed/subsamples/chip/PE_1M/subsampled
+MOMA	THP1	CTCF	PMA	72h	2	1	1	sub_CTCF_macrophage2_1.fastq.gz	sub_CTCF_macrophage2_2.fastq.gz	/proj/phanstiel_lab/Data/processed/subsamples/chip/PE_1M/subsampled
+MOMA	THP1	CTCF	PBS	00h	1	1	1	sub_CTCF_monocyte1_1.fastq.gz	sub_CTCF_monocyte1_2.fastq.gz	/proj/phanstiel_lab/Data/processed/subsamples/chip/PE_1M/subsampled
+MOMA	THP1	CTCF	PBS	00h	2	1	1	sub_CTCF_monocyte2_1.fastq.gz	sub_CTCF_monocyte2_2.fastq.gz	/proj/phanstiel_lab/Data/processed/subsamples/chip/PE_1M/subsampled

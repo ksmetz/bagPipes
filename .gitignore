@@ -4,3 +4,4 @@ output
 *.out
 *Samplesheet.txt
 workflows/utils/__pycache__
+RNAoutput
