@@ -5,3 +5,4 @@ output
 *Samplesheet.txt
 workflows/utils/__pycache__
 RNAoutput
+ChIPoutput

@@ -18,9 +18,7 @@ samples['sn'] = samples[config['fileNamesFrom']].apply('_'.join, axis=1)
 ## Conditional output - check that mergeBy is valid
 outfiles = list()
 
-if config['mergeBy'] == config['fileNamesFrom']:
-	"None"
-elif config['mergeBy'] == '':
+if config['mergeBy'] == config['fileNamesFrom'] or config['mergeBy'] == '':
 	"None"
 else:
 	## Merge according to mergeBy parameter, define merge name (mn)

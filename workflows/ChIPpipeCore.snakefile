@@ -31,6 +31,34 @@ samples.to_csv(newSamplesheet, sep="\t", index=False)
 read1 = samples.groupby('sn')['Read1'].apply(list).to_dict()
 read2 = samples.groupby('sn')['Read2'].apply(list).to_dict()
 
+## Optional + conditional outputs
+## if mergeBy supplied, call peaks from merged samples
+mergeOutputs = dict()
+peaksOutput = dict()
+peaksInput = dict()
+
+if config['mergeBy'] == config['fileNamesFrom'] or config['mergeBy'] == '':
+	mergeOutputs["align"] = []
+	mergeOutputs["signal"] = []
+	peaksInput['bam'] = [expand("output/align/{sampleName}_nodups_sorted.bam", sampleName=key) for key in samples['sn']]
+	peaksInput['index'] = [expand("output/align/{sampleName}_nodups_sorted.bam.bai", sampleName=key) for key in samples['sn']]
+	peaksOutput["peaks"] = [expand("output/peaks/{sampleName}_peaks.narrowPeak", sampleName=key) for key in samples['sn']]
+	peakName = [expand(key) for key in samples['sn']]
+else:
+	## Merge according to mergeBy parameter, define merge name (mn)
+	samples['mn'] = samples[config['mergeBy']].agg('_'.join, axis=1)
+
+	## Build dictionary of merged BAM files
+	mergeSamples = samples.groupby('mn')['sn'].apply(list).to_dict()
+
+	## Define rule all inputs
+	mergeOutputs["align"] = [expand("output/mergeAlign/{mergeName}_{ext}", mergeName=key, ext=['nodups_sorted.bam', 'nodups_sorted.bam.bai', 'stats.txt']) for key in mergeSamples]
+	mergeOutputs["signal"] = [expand("output/mergeSignal/{mergeName}.bw", mergeName=key) for key in mergeSamples]
+	peaksInput['bam'] = [expand("output/mergeAlign/{mergeName}_nodups_sorted.bam", mergeName=key) for key in mergeSamples]
+	peaksInput['index'] = [expand("output/mergeAlign/{mergeName}_nodups_sorted.bam.bai", mergeName=key) for key in mergeSamples]
+	peaksOutput["peaks"] = [expand("output/peaks/{mergeName}_peaks.narrowPeak", mergeName=key) for key in mergeSamples]
+	peakName = [expand(key) for key in mergeSamples]
+
 ## Define actions on success
 onsuccess:
 	## Success message
@@ -39,9 +67,6 @@ onsuccess:
 ##### Define rules #####
 rule all:
 	input:
-		[expand("output/align/{sampleName}_{ext}", sampleName=key, ext=['nodups_sorted.bam', 'nodups_sorted.bam.bai', 'stats.txt', 'dup_metrics.txt']) for key in samples['sn']],
-		[expand("output/peaks/{sampleName}_{ext}", sampleName=key, ext=['treat_pileup.bdg', 'control_lambda.bdg', 'peaks.xls', 'peaks.narrowPeak', 'summits.bed']) for key in samples['sn']],
-		[expand("output/signal/{sampleName}.bw", sampleName=key) for key in samples['sn']],
 		("output/QC/{name}_multiqc_report.html").format(name=runName),
 		("output/peaks/{name}_peakCounts.tsv").format(name=runName)
 
@@ -130,29 +155,6 @@ rule align:
 		samtools index {output.filteredBam} 1>> {log.out} 2>> {log.err}
 		"""
 
-rule peaks:
-	input:
-		rules.align.output.filteredBam
-	output:
-		"output/peaks/{sampleName}_treat_pileup.bdg",
-		"output/peaks/{sampleName}_control_lambda.bdg",
-		"output/peaks/{sampleName}_peaks.xls",
-		"output/peaks/{sampleName}_summits.bed",
-		peaks = "output/peaks/{sampleName}_peaks.narrowPeak",
-	params:
-		dir = "output/peaks",
-		version = config['macsVers']
-	log:
-		err = 'output/logs/peaks_{sampleName}.err',
-		out = 'output/logs/peaks_{sampleName}.out'
-	benchmark: 
-		'output/benchmarks/peaks_{sampleName}.tsv'
-	shell:
-		"""
-		module load macs/{params.version};
-		macs2 callpeak -t {input} -f BAM -q 0.01 -g hs --nomodel --shift 0 --extsize 200 --keep-dup all -B --SPMR --outdir {params.dir} -n {wildcards.sampleName}
-		"""
-
 rule signal:
 	input:
 		bam = rules.align.output.filteredBam
@@ -171,13 +173,78 @@ rule signal:
 		bamCoverage -b {input.bam} -o {output} 1> {log.out} 2> {log.err}
 		"""
 
+rule mergeAlign:
+	input:
+		bams = lambda wildcards: ["output/align/{sampleName}_nodups_sorted.bam".format(sampleName=value) for value in mergeSamples[wildcards.mergeName]],
+		bais = lambda wildcards: ["output/align/{sampleName}_nodups_sorted.bam.bai".format(sampleName=value) for value in mergeSamples[wildcards.mergeName]]
+	output:
+		bam = "output/mergeAlign/{mergeName}_nodups_sorted.bam",
+		bai = "output/mergeAlign/{mergeName}_nodups_sorted.bam.bai",
+		stats = "output/mergeAlign/{mergeName}_stats.txt"
+	log:
+		err = 'output/logs/mergeAlign_{mergeName}.err',
+		out = 'output/logs/mergeAlign_{mergeName}.out'
+	benchmark: 
+		'output/benchmarks/mergeAlign_{mergeName}.tsv'
+	params:
+		version = config['samtoolsVers']
+	shell:
+		"""
+		module load samtools/{params.version};
+		samtools merge {output.bam} {input.bams} 1>> {log.out} 2>> {log.err};
+		samtools flagstat {output.bam} > {output.stats} 2>> {log.err};
+		samtools index {output.bam} 1>> {log.out} 2>> {log.err}
+		"""
+
+rule mergeSignal:
+	input:
+		bam = rules.mergeAlign.output.bam
+	output:
+		"output/mergeSignal/{mergeName}.bw"
+	log:
+		err = 'output/logs/mergeSignal_{mergeName}.err',
+		out = 'output/logs/mergeSignal_{mergeName}.out'
+	benchmark: 
+		'output/benchmarks/mergeSignal_{mergeName}.tsv'
+	params:
+		version = config['deeptoolsVers']
+	shell:
+		"""
+		module load deeptools/{params.version};
+		bamCoverage -b {input.bam} -o {output} 1> {log.out} 2> {log.err}
+		"""
+
+## NEEDS FIX: uses full list of peak names as output for each macs2 call, causing error
+rule peaks:
+	input:
+		bam = peaksInput["bam"],
+		index = peaksInput["index"]
+	output:
+		peaksOutput["peaks"]
+	params:
+		dir = "output/peaks",
+		version = config['macsVers'],
+		name = peakName
+	log:
+		err = 'output/logs/peaks_{params.name}.err',
+		out = 'output/logs/peaks_{params.name}.out'
+	benchmark: 
+		'output/benchmarks/peaks_{params.name}.tsv'
+	shell:
+		"""
+		module load macs/{params.version};
+		macs2 callpeak -t {input.bam} -f BAM -q 0.01 -g hs --nomodel --shift 0 --extsize 200 --keep-dup all -B --SPMR --outdir {params.dir} -n {params.name}
+		"""
+
 rule multiqc:
 	input:
 		[expand("output/QC/{sampleName}_{read}_fastqc.{ext}", sampleName=key, read=['R1', 'R2'], ext=['zip', 'html']) for key in samples['sn']],
 		[expand("output/trim/{sampleName}_{read}_{ext}", sampleName=key, read=['R1', 'R2'], ext=['trimming_report.txt', 'trimmed.fastq.gz']) for key in samples['sn']],
 		[expand("output/align/{sampleName}_{ext}", sampleName=key, ext=['nodups_sorted.bam', 'nodups_sorted.bam.bai', 'stats.txt', 'dup_metrics.txt']) for key in samples['sn']],
-		[expand("output/peaks/{sampleName}_{ext}", sampleName=key, ext=['treat_pileup.bdg', 'control_lambda.bdg', 'peaks.xls', 'peaks.narrowPeak', 'summits.bed']) for key in samples['sn']],
-		[expand("output/signal/{sampleName}.bw", sampleName=key) for key in samples['sn']]
+		[expand("output/signal/{sampleName}.bw", sampleName=key) for key in samples['sn']],
+		peaksOutput["peaks"],
+		mergeOutputs["align"],
+		mergeOutputs["signal"]
 	output:
 		("output/QC/{name}_multiqc_report.html").format(name=runName)
 	params:
@@ -199,9 +266,8 @@ rule multiqc:
 # Try adjusting header line to for NAME in {wildcards.sampleName}
 rule countMatrix:
 	input:
-		[expand("output/peaks/{sampleName}_{ext}", sampleName=key, ext=['treat_pileup.bdg', 'control_lambda.bdg', 'peaks.xls', 'summits.bed']) for key in samples['sn']], 
-		[expand("output/align/{sampleName}_{ext}", sampleName=key, ext=['nodups_sorted.bam.bai', 'stats.txt', 'dup_metrics.txt']) for key in samples['sn']],
-		peaks = [expand("output/peaks/{sampleName}_peaks.narrowPeak", sampleName=key) for key in samples['sn']], 
+		peaks = peaksOutput["peaks"],
+		other = [expand("output/align/{sampleName}_{ext}", sampleName=key, ext=['nodups_sorted.bam.bai', 'stats.txt', 'dup_metrics.txt']) for key in samples['sn']],
 		bams = [expand("output/align/{sampleName}_nodups_sorted.bam", sampleName=key) for key in samples['sn']]
 	output:
 		tmp = temp("output/peaks/TEMP.bed"),
