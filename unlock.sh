@@ -16,10 +16,15 @@ case $1 in
             exit 2
             ;;
     
-    'RNApipeCore' | 'RNAcore' | 'rnaCore')
+    'RNApipe' | 'RNA' | 'rna')
             ## Unlock snakemake workflow
             snakemake -j 100 --unlock -s workflows/RNApipeCore.snakefile --cores 1 --configfile ./config/RNAconfig.yaml
             snakemake -j 100 --unlock -s workflows/mergeSignal.snakefile --cores 1 --configfile ./config/RNAconfig.yaml
+            ;;
+    
+    'ChIPpipe' | 'ChIP' | 'chip')
+            ## Unlock snakemake workflow
+            snakemake -j 100 --unlock -s workflows/ChIPpipeCore.snakefile --cores 1 --configfile ./config/ChIPconfig.yaml
             ;;
 esac
 

@@ -44,7 +44,7 @@ python3 ./workflows/utils/benchmarking.py
 -----------------------
 Use this command when you want to delete a previously generated output and re-run.
 ```bash
-./unlock.sh RNApipeCore
+./unlock.sh RNApipe
 ```
 
 ## To-do
