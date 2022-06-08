@@ -1,75 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import pandas as pd
-import glob
-import shutil
-import os
-from utils.namer import namer
-
-## Read in samplesheet
-samples = pd.read_csv(config["samplesheet"], sep='\t')
-
-## Convert all columns to strings
-samples = samples.astype(str)
-
-## Concatenate the sequencing directory to Read1 and Read2 for full paths
-samples['Read1'] = samples[['Sequencing_Directory', 'Read1']].apply(lambda row: os.path.join(*row), axis=1)
-samples['Read2'] = samples[['Sequencing_Directory', 'Read2']].apply(lambda row: os.path.join(*row), axis=1)
-
-## Set sample names
-samples['sn'] = samples[config['fileNamesFrom']].apply('_'.join, axis=1)
-
-## Set run summary name using helper script
-runName = namer(samples, config['fileNamesFrom'])
-
-## Write samplesheet with sampleNames to new file
-newSamplesheet = ('output/{name}_ChIPpipeSamplesheet.txt').format(name = runName)
-samples.to_csv(newSamplesheet, sep="\t", index=False)
-
-## Group by id and extract Read1 & Read2
-read1 = samples.groupby('sn')['Read1'].apply(list).to_dict()
-read2 = samples.groupby('sn')['Read2'].apply(list).to_dict()
-
-## Optional + conditional outputs
-## if mergeBy supplied, call peaks from merged samples
-mergeOutputs = dict()
-peaksOutput = dict()
-peaksInput = dict()
-
-if config['mergeBy'] == config['fileNamesFrom'] or config['mergeBy'] == '':
-	mergeOutputs["align"] = []
-	mergeOutputs["signal"] = []
-	peaksInput['bam'] = [expand("output/align/{sampleName}_nodups_sorted.bam", sampleName=key) for key in samples['sn']]
-	peaksInput['index'] = [expand("output/align/{sampleName}_nodups_sorted.bam.bai", sampleName=key) for key in samples['sn']]
-	peaksOutput["peaks"] = [expand("output/peaks/{sampleName}_peaks.narrowPeak", sampleName=key) for key in samples['sn']]
-	peakName = [expand(key) for key in samples['sn']]
-else:
-	## Merge according to mergeBy parameter, define merge name (mn)
-	samples['mn'] = samples[config['mergeBy']].agg('_'.join, axis=1)
-
-	## Build dictionary of merged BAM files
-	mergeSamples = samples.groupby('mn')['sn'].apply(list).to_dict()
-
-	## Define rule all inputs
-	mergeOutputs["align"] = [expand("output/mergeAlign/{mergeName}_{ext}", mergeName=key, ext=['nodups_sorted.bam', 'nodups_sorted.bam.bai', 'stats.txt']) for key in mergeSamples]
-	mergeOutputs["signal"] = [expand("output/mergeSignal/{mergeName}.bw", mergeName=key) for key in mergeSamples]
-	peaksInput['bam'] = [expand("output/mergeAlign/{mergeName}_nodups_sorted.bam", mergeName=key) for key in mergeSamples]
-	peaksInput['index'] = [expand("output/mergeAlign/{mergeName}_nodups_sorted.bam.bai", mergeName=key) for key in mergeSamples]
-	peaksOutput["peaks"] = [expand("output/peaks/{mergeName}_peaks.narrowPeak", mergeName=key) for key in mergeSamples]
-	peakName = [expand(key) for key in mergeSamples]
-
-## Define actions on success
-onsuccess:
-	## Success message
-	print("ChIPpipe completed successfully! Wahoo!")
-
-##### Define rules #####
-rule all:
-	input:
-		("output/QC/{name}_multiqc_report.html").format(name=runName),
-		("output/peaks/{name}_peakCounts.tsv").format(name=runName)
-
 rule fastqc:
 	input:
 		R1 = lambda wildcards: read1.get(wildcards.sampleName),
@@ -144,6 +75,7 @@ rule align:
 		bwaVersion = config['bwaVers'],
 		samtoolsVersion = config['samtoolsVers'],
 		javaVersion = config['javaVers']
+	threads: 8
 	shell:
 		"""
 		module load bwa/{params.bwaVersion};
@@ -214,26 +146,24 @@ rule mergeSignal:
 		bamCoverage -b {input.bam} -o {output} 1> {log.out} 2> {log.err}
 		"""
 
-## NEEDS FIX: uses full list of peak names as output for each macs2 call, causing error
 rule peaks:
 	input:
-		bam = peaksInput["bam"],
-		index = peaksInput["index"]
+		bam = rules.mergeAlign.output.bam,
+		index = rules.mergeAlign.output.bai
 	output:
-		peaksOutput["peaks"]
+		"output/peaks/{mergeName}_peaks.narrowPeak"
 	params:
 		dir = "output/peaks",
-		version = config['macsVers'],
-		name = peakName
+		version = config['macsVers']
 	log:
-		err = 'output/logs/peaks_{params.name}.err',
-		out = 'output/logs/peaks_{params.name}.out'
+		err = 'output/logs/peaks_{mergeName}.err',
+		out = 'output/logs/peaks_{mergeName}.out'
 	benchmark: 
-		'output/benchmarks/peaks_{params.name}.tsv'
+		'output/benchmarks/peaks_{mergeName}.tsv'
 	shell:
 		"""
 		module load macs/{params.version};
-		macs2 callpeak -t {input.bam} -f BAM -q 0.01 -g hs --nomodel --shift 0 --extsize 200 --keep-dup all -B --SPMR --outdir {params.dir} -n {params.name}
+		macs2 callpeak -t {input.bam} -f BAM -q 0.01 -g hs --nomodel --shift 0 --extsize 200 --keep-dup all -B --SPMR --outdir {params.dir} -n {wildcards.mergeName}
 		"""
 
 rule multiqc:
@@ -242,9 +172,9 @@ rule multiqc:
 		[expand("output/trim/{sampleName}_{read}_{ext}", sampleName=key, read=['R1', 'R2'], ext=['trimming_report.txt', 'trimmed.fastq.gz']) for key in samples['sn']],
 		[expand("output/align/{sampleName}_{ext}", sampleName=key, ext=['nodups_sorted.bam', 'nodups_sorted.bam.bai', 'stats.txt', 'dup_metrics.txt']) for key in samples['sn']],
 		[expand("output/signal/{sampleName}.bw", sampleName=key) for key in samples['sn']],
-		peaksOutput["peaks"],
-		mergeOutputs["align"],
-		mergeOutputs["signal"]
+		[expand("output/peaks/{mergeName}_peaks.narrowPeak", mergeName=key) for key in mergeSamples],
+		[expand("output/mergeAlign/{mergeName}_{ext}", mergeName=key, ext=['nodups_sorted.bam', 'nodups_sorted.bam.bai', 'stats.txt']) for key in mergeSamples],
+		[expand("output/mergeSignal/{mergeName}.bw", mergeName=key) for key in mergeSamples]
 	output:
 		("output/QC/{name}_multiqc_report.html").format(name=runName)
 	params:
@@ -263,10 +193,9 @@ rule multiqc:
 		mv output/QC/multiqc_data output/QC/{params.name}_multiqc_data
 		"""
 
-# Try adjusting header line to for NAME in {wildcards.sampleName}
 rule countMatrix:
 	input:
-		peaks = peaksOutput["peaks"],
+		peaks = [expand("output/peaks/{mergeName}_peaks.narrowPeak", mergeName=key) for key in mergeSamples],
 		other = [expand("output/align/{sampleName}_{ext}", sampleName=key, ext=['nodups_sorted.bam.bai', 'stats.txt', 'dup_metrics.txt']) for key in samples['sn']],
 		bams = [expand("output/align/{sampleName}_nodups_sorted.bam", sampleName=key) for key in samples['sn']]
 	output:

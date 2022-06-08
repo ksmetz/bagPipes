@@ -24,7 +24,7 @@ case $1 in
     
     'ChIPpipe' | 'ChIP' | 'chip')
             ## Unlock snakemake workflow
-            snakemake -j 100 --unlock -s workflows/ChIPpipeCore.snakefile --cores 1 --configfile ./config/ChIPconfig.yaml
+            snakemake -j 100 --unlock -s workflows/ChIPpipeLauncher.snakefile --cores 1 --configfile ./config/ChIPconfig.yaml
             ;;
 esac
 

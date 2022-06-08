@@ -1,5 +1,5 @@
 ## Path to sample sheet
-samplesheet: 'samplesheet.txt'
+samplesheet: 'RNAsamplesheet.txt'
 
 ## List columns to concatenate for file names 
 ## (or indicate a single Name column, i.e. fileNamesFrom: ['Name'])

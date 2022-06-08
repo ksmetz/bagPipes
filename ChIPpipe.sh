@@ -21,7 +21,7 @@ python3 -m venv env && source env/bin/activate && pip3 install -r config/require
 mkdir -p output/logs_slurm
 
 ## Execute ChIPpipeCore snakemake workflow
-snakemake -s workflows/ChIPpipeCore.snakefile --configfile "config/ChIPconfig.yaml" --cluster-config "config/cluster.yaml" --cluster "sbatch -J {cluster.name} -p {cluster.partition} -t {cluster.time} -c {cluster.cpusPerTask} --mem-per-cpu={cluster.memPerCpu} -N {cluster.nodes} --output {cluster.output} --error {cluster.error} --parsable" --cluster-status ./workflows/utils/status.py -j 100 --max-jobs-per-second 5 --max-status-checks-per-second 5 --rerun-incomplete -p --latency-wait 500 
+snakemake -s workflows/ChIPpipeLauncher.snakefile --configfile "config/ChIPconfig.yaml" --cluster-config "config/cluster.yaml" --cluster "sbatch -J {cluster.name} -p {cluster.partition} -t {cluster.time} -c {cluster.cpusPerTask} --mem-per-cpu={cluster.memPerCpu} -N {cluster.nodes} --output {cluster.output} --error {cluster.error} --parsable" --cluster-status ./workflows/utils/status.py -j 100 --max-jobs-per-second 5 --max-status-checks-per-second 5 --rerun-incomplete -p --latency-wait 500 
 
 ## Success message
 echo "Workflow completed successfully!"

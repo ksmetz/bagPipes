@@ -9,7 +9,7 @@ bagPipes includes pipelines for paired-end RNA-seq data, ChIP-seq/CUT&RUN data, 
 
 This pipeline is inteded to be run on the UNC HPC longleaf cluster with SLURM.
 
-## Running
+## Running RNApipe
 -----------------------
 The `RNApipe` SLURM wrapper will sequentially launch the `RNApipeCore` and `mergeSignal` workflows using the `RNAconfig.yaml` file.
 
@@ -24,9 +24,28 @@ Launch the pipeline using the following command:
 sbatch RNApipe.sh
 ```
 
-## Workflow
+## Running RNApipe
 -----------------------
+The `ChIPpipe` SLURM wrapper will launch either the `ChIPpipe` or `ChIPpipeMerged` workflows via the `ChIPpipeLauncher` decision workflow, using the `ChIPconfig.yaml` file.
+
+`ChIPpipe` creates peak calls, alignments and signal tracks. Output files are named according to `fileNamesFrom` list in the config file.
+
+`ChIPpipeMerged` creates merged alignments and signal tracks, and calls peaks from the merged alignments. This will be run if the `mergeBy` entry of the config is not blank, and different from the `fileNamesFrom` entry.
+
+Both workflows generate a final summary `peakCounts.tsv` file containing the counts from each individual alignment at a merged set of peaks.
+
+Launch the pipeline using the following command:
+```bash
+sbatch ChIPpipe.sh
+```
+
+## Workflows
+-----------------------
+# RNApipe
 ![](dags/RNApipeCoreDAG.png)
+
+# ChIPpipe
+![](dags/ChIPpipeDAG.png)
 
 ## Merging
 -----------------------
@@ -45,6 +64,7 @@ python3 ./workflows/utils/benchmarking.py
 Use this command when you want to delete a previously generated output and re-run.
 ```bash
 ./unlock.sh RNApipe
+./unlock.sh ChIPpipe
 ```
 
 ## To-do
@@ -56,7 +76,8 @@ Use this command when you want to delete a previously generated output and re-ru
 - Consider trying to incorporate the mergeSignal into RNApipeCore 
 
 **ChIPpipe + ATACpipe**
-- Create single pipeline for each, compatible with signalMerge script
-- Include logic for using either merged- or non-merged aligns for peak calling, depending on `fileNamesFrom`/`mergeBy` params
+- Create ATACpipe based on ChIPpipe
+- Consider editing ChIPpipe rule countMatrix to create header line from `{wildcards.sampleName}`
+- Move MACS2 peak calling settings into config
 
 **This pipeline is still in development. More information to come upon completion!**
