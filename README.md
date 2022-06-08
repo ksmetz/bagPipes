@@ -24,7 +24,7 @@ Launch the pipeline using the following command:
 sbatch RNApipe.sh
 ```
 
-## Running RNApipe
+## Running ChIPpipe
 -----------------------
 The `ChIPpipe` SLURM wrapper will launch either the `ChIPpipe` or `ChIPpipeMerged` workflows via the `ChIPpipeLauncher` decision workflow, using the `ChIPconfig.yaml` file.
 
