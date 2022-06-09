@@ -9,6 +9,15 @@ bagPipes includes pipelines for paired-end RNA-seq data, ChIP-seq/CUT&RUN data, 
 
 This pipeline is inteded to be run on the UNC HPC longleaf cluster with SLURM.
 
+### TABLE OF CONTENTS
+- [Quickstart](#quickstart)
+- [About RNApipe](#about-rnapipe)
+- [About ChIPpipe and ATACpipe](#about-chippipe-and-atacpipe)
+- [Merging signal tracks](#merging-signal-tracks)
+- [Benchmarking](#benchmarking)
+- [Unlocking](#unlocking)
+- [To Do](#to-do)
+
 ## Quickstart
 -----------------------
 The individual pipelines of `bagPipes` are run in very similar ways, with differences in their config `.yaml` files that can be used to fine tune runs. When using default settings, the general steps for all pipelines are as follows:
@@ -100,7 +109,7 @@ For both workflows, stranded signal tracks will be created by default, but can b
 The `RNApipe` core workflow (without merging) is as follows:
 ![](dags/RNApipeCoreDAG.png)
 
-## About ChIPpipe, ATACpipe
+## About ChIPpipe and ATACpipe
 -----------------------
 The `ChIPpipe` and `ATACpipe` SLURM wrappers will launch either the baseline or merged workflows via the `XXXXpipeLauncher` decision workflows. 
 
@@ -164,7 +173,7 @@ Use this command when you want to delete or add to a previously generated output
 ./unlock.sh atac
 ```
 
-## To-do
+## To Do
 -----------------------
 **General**
 - Move to-do list to github issues!
