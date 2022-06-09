@@ -26,10 +26,15 @@ case $1 in
             ## Unlock snakemake workflow
             snakemake -j 100 --unlock -s workflows/ChIPpipeLauncher.snakefile --cores 1 --configfile ./config/ChIPconfig.yaml
             ;;
+    
+    'ATACpipe' | 'ATAC' | 'atac')
+            ## Unlock snakemake workflow
+            snakemake -j 100 --unlock -s workflows/ATACpipeLauncher.snakefile --cores 1 --configfile ./config/ATACconfig.yaml
+            ;;
 esac
 
 ## Deactivate virtual environment
 deactivate
 
 ## Success message
-echo -e "\033[0;32mDirectory unlocked, ready to rerun with sbatch RNApipeCore.sh"
+echo -e "\033[0;32mDirectory unlocked, ready to rerun with sbatch XXXXpipeCore.sh"

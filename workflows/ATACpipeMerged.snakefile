@@ -109,24 +109,65 @@ rule signal:
 		bamCoverage -b {input.bam} -o {output} 1> {log.out} 2> {log.err}
 		"""
 
+rule mergeAlign:
+	input:
+		bams = lambda wildcards: ["output/align/{sampleName}_nodups_filtered_sorted.bam".format(sampleName=value) for value in mergeSamples[wildcards.mergeName]],
+		bais = lambda wildcards: ["output/align/{sampleName}_nodups_filtered_sorted.bam.bai".format(sampleName=value) for value in mergeSamples[wildcards.mergeName]]
+	output:
+		bam = "output/mergeAlign/{mergeName}_nodups_filtered_sorted.bam",
+		bai = "output/mergeAlign/{mergeName}_nodups_filtered_sorted.bam.bai",
+		stats = "output/mergeAlign/{mergeName}_stats.txt"
+	log:
+		err = 'output/logs/mergeAlign_{mergeName}.err',
+		out = 'output/logs/mergeAlign_{mergeName}.out'
+	benchmark: 
+		'output/benchmarks/mergeAlign_{mergeName}.tsv'
+	params:
+		version = config['samtoolsVers']
+	shell:
+		"""
+		module load samtools/{params.version};
+		samtools merge {output.bam} {input.bams} 1>> {log.out} 2>> {log.err};
+		samtools flagstat {output.bam} > {output.stats} 2>> {log.err};
+		samtools index {output.bam} 1>> {log.out} 2>> {log.err}
+		"""
+
+rule mergeSignal:
+	input:
+		bam = rules.mergeAlign.output.bam
+	output:
+		"output/mergeSignal/{mergeName}.bw"
+	log:
+		err = 'output/logs/mergeSignal_{mergeName}.err',
+		out = 'output/logs/mergeSignal_{mergeName}.out'
+	benchmark: 
+		'output/benchmarks/mergeSignal_{mergeName}.tsv'
+	params:
+		version = config['deeptoolsVers']
+	shell:
+		"""
+		module load deeptools/{params.version};
+		bamCoverage -b {input.bam} -o {output} 1> {log.out} 2> {log.err}
+		"""
+
 rule peaks:
 	input:
-		bam = rules.align.output.filteredBam,
-		index = rules.align.output.index
+		bam = rules.mergeAlign.output.bam,
+		index = rules.mergeAlign.output.bai
 	output:
-		"output/peaks/{sampleName}_peaks.narrowPeak"
+		"output/peaks/{mergeName}_peaks.narrowPeak"
 	params:
 		dir = "output/peaks",
 		version = config['macsVers']
 	log:
-		err = 'output/logs/peaks_{sampleName}.err',
-		out = 'output/logs/peaks_{sampleName}.out'
+		err = 'output/logs/peaks_{mergeName}.err',
+		out = 'output/logs/peaks_{mergeName}.out'
 	benchmark: 
-		'output/benchmarks/peaks_{sampleName}.tsv'
+		'output/benchmarks/peaks_{mergeName}.tsv'
 	shell:
 		"""
 		module load macs/{params.version};
-		macs2 callpeak -t {input.bam} -f BAM -q 0.01 -g hs --nomodel --shift 100 --extsize 200 --keep-dup all -B --SPMR --outdir {params.dir} -n {wildcards.sampleName}
+		macs2 callpeak -t {input.bam} -f BAM -q 0.01 -g hs --nomodel --shift 0 --extsize 200 --keep-dup all -B --SPMR --outdir {params.dir} -n {wildcards.mergeName}
 		"""
 
 rule multiqc:
@@ -135,7 +176,9 @@ rule multiqc:
 		[expand("output/trim/{sampleName}_{read}_{ext}", sampleName=key, read=['R1', 'R2'], ext=['trimming_report.txt', 'trimmed.fastq.gz']) for key in samples['sn']],
 		[expand("output/align/{sampleName}_{ext}", sampleName=key, ext=['nodups_filtered_sorted.bam', 'nodups_filtered_sorted.bam.bai', 'stats.txt', 'dup_metrics.txt']) for key in samples['sn']],
 		[expand("output/signal/{sampleName}.bw", sampleName=key) for key in samples['sn']],
-		[expand("output/peaks/{sampleName}_peaks.narrowPeak", sampleName=key) for key in samples['sn']]
+		[expand("output/peaks/{mergeName}_peaks.narrowPeak", mergeName=key) for key in mergeSamples],
+		[expand("output/mergeAlign/{mergeName}_{ext}", mergeName=key, ext=['nodups_filtered_sorted.bam', 'nodups_filtered_sorted.bam.bai', 'stats.txt']) for key in mergeSamples],
+		[expand("output/mergeSignal/{mergeName}.bw", mergeName=key) for key in mergeSamples]
 	output:
 		("output/QC/{name}_multiqc_report.html").format(name=runName)
 	params:
@@ -156,7 +199,7 @@ rule multiqc:
 
 rule countMatrix:
 	input:
-		peaks = [expand("output/peaks/{sampleName}_peaks.narrowPeak", sampleName=key) for key in samples['sn']],
+		peaks = [expand("output/peaks/{mergeName}_peaks.narrowPeak", mergeName=key) for key in mergeSamples],
 		other = [expand("output/align/{sampleName}_{ext}", sampleName=key, ext=['nodups_filtered_sorted.bam.bai', 'stats.txt', 'dup_metrics.txt']) for key in samples['sn']],
 		bams = [expand("output/align/{sampleName}_nodups_filtered_sorted.bam", sampleName=key) for key in samples['sn']]
 	output:

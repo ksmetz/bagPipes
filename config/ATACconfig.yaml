@@ -1,13 +1,13 @@
 ## Path to sample sheet
-samplesheet: 'ChIPsamplesheet.txt'
+samplesheet: 'ATACsamplesheet.txt'
 
 ## List columns to concatenate for file names 
 ## (or indicate a single Name column, i.e. fileNamesFrom: ['Name'])
-fileNamesFrom: ['Project', 'Cell_Type', 'Target', 'Time', 'Bio_Rep', 'Tech_Rep']
+fileNamesFrom: ['Project', 'Cell_Type', 'Time', 'Bio_Rep', 'Tech_Rep']
 
 ## List columns to group (i.e. any columns left out will become part of the same group)
-## set mergeBy: '' for no merging
-mergeBy: ['Project', 'Cell_Type', 'Target', 'Time']
+## set mergeBy: '' for no merging 
+mergeBy: ['Project', 'Cell_Type', 'Time']
 
 ## Indicate whether to create stranded signal tracks
 stranded: False

@@ -2,8 +2,11 @@ env
 .snakemake
 output
 *.out
-*Samplesheet.txt
+RNAsamplesheet.txt
+ChIPsamplesheet.txt
+ATACsamplesheet.txt
 workflows/utils/__pycache__
 RNAoutput
 ChIPoutput
+ATACoutput
 ?

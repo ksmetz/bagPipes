@@ -7,7 +7,7 @@ fileNamesFrom: ['Project', 'Cell_Type', 'Genotype', 'Time', 'Bio_Rep', 'Tech_Rep
 
 ## List columns to group (i.e. any columns left out will become part of the same group)
 ## set mergeBy: '' for no merging
-mergeBy: ['Project', 'Cell_Type', 'Genotype', 'Time']
+mergeBy: ['Project', 'Cell_Type', 'Genotype']
 
 ## Indicate whether to create stranded signal tracks
 stranded: True # False
