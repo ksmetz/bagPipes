@@ -217,7 +217,7 @@ rule countMatrix:
 		cat {input.peaks} | awk '{{ OFS="\t"}};{{ print $1, $2, $3, $4 }}' | sort -k1,1 -k2,2n | bedtools merge > {output.tmp};
 		grep -ve "-1" {output.tmp} > {output.peakMerge}; 
 		printf "chr\tstart\tstop\t" > {output.peakCounts};
-		for f in {input.bams}; do NAME=$(basename $f _filter_sorted.bam); printf '%s\t' "$NAME" >> {output.peakCounts}; done;
+		for f in {input.bams}; do NAME=$(basename $f _nodups_sorted.bam); printf '%s\t' "$NAME" >> {output.peakCounts}; done;
 		printf "\n" >> {output.peakCounts};
 		bedtools multicov -bams {input.bams} -bed {output.peakMerge} >> {output.peakCounts}
 		"""

@@ -7,11 +7,17 @@ bagPipes includes pipelines for paired-end RNA-seq data, ChIP-seq/CUT&RUN data, 
 
 This pipeline is inteded to be run on the UNC HPC longleaf cluster with SLURM.
 
-### TABLE OF CONTENTS
+### Table of Contents
 - [Quickstart](#quickstart)
 - [Pipeline Details](#pipeline-details)
 	- [RNApipe](#rnapipe)
+		- [Workflow](#rna-workflow)
+		- [Output](#rna-output)
+		- [Code](#rna-code)
 	- [ChIPpipe and ATACpipe](#chippipe-and-atacpipe)
+		- [Workflow](#workflow)
+		- [Output](#output)
+		- [Code](#code)
 - [Merging signal tracks](#merging-signal-tracks)
 - [Benchmarking](#benchmarking)
 - [Unlocking](#unlocking)
@@ -73,9 +79,9 @@ The individual pipelines of `bagPipes` are run in very similar ways, with differ
 4. Submit to `SLURM` with sbatch scripts:
 
 	```bash
-	sbatch RNApipe.sh
-	sbatch ATACpipe.sh
-	sbatch ChIPpipe.sh
+	sbatch RNApipe.sh   # to launch RNApipe
+	sbatch ATACpipe.sh  # to launch ATACpipe
+	sbatch ChIPpipe.sh  # to launch ChIPpipe
 	```
 
 [Back to top](#table-of-contents)
@@ -93,11 +99,11 @@ The `RNApipe` SLURM wrapper will sequentially launch the `RNApipeCore` and `merg
 
 For both workflows, stranded signal tracks will be created by default, but can be toggled off using the `stranded` parameter in the config file.
 
-### Workflow
+### RNA Workflow
 The `RNApipe` core workflow (without merging) is as follows:
 ![](dags/RNApipeCoreDAG.png)
 
-### Output structure
+### RNA Output 
 ```bash
 RNApipe-{jobid}.out
 output/
@@ -114,82 +120,400 @@ output/
 └── trim
 ```
 
-### Code
+### RNA Code
 <details>
 	<summary>Example of code for RNApipeCore workflow</summary>
 
-	```bash
-	# rule fastqc
-	fastqc -o output/QC {read1}.fastq.gz {read2}.fastq.gz
-	mv output/QC/$(basename {read1}.fastq.gz .fastq.gz)_fastqc.zip output/QC/{sampleName}_R1_fastqc.zip
-	mv output/QC/$(basename {read2}.fastq.gz .fastq.gz)_fastqc.zip output/QC/{sampleName}_R2_fastqc.zip
-	mv output/QC/$(basename {read1}.fastq.gz .fastq.gz)_fastqc.html output/QC/{sampleName}_R1_fastqc.html
-	mv output/QC/$(basename {read2}.fastq.gz .fastq.gz)_fastqc.html output/QC/{sampleName}_R1_fastqc.html
+  ```bash
+  # rule fastqc
+  fastqc -o output/QC {read1}.fastq.gz {read2}.fastq.gz
 
-	# rule trim
-	trim_galore -o output/trim --paired {read1}.fastq.gz {read2}.fastq.gz
-	mv output/trim/$(basename {read1}.fastq.gz .fastq.gz)_val_1.fq.gz output/trim/{sampleName}_R1_trimmed.fastq.gz
-	mv output/trim/$(basename {read2}.fastq.gz .fastq.gz)_val_2.fq.gz output/trim/{sampleName}_R2_trimmed.fastq.gz
-	mv output/trim/$(basename {read1}.fastq.gz .fastq.gz)_trimming_report.txt output/trim/{sampleName}_R1_trimming_report.txt
-	mv output/trim/$(basename {read2}.fastq.gz .fastq.gz)_trimming_report.txt output/trim/{sampleName}_R2_trimming_report.txt
+  mv output/QC/$(basename {read1}.fastq.gz .fastq.gz)_fastqc.zip output/QC  {sampleName}_R1_fastqc.zip
+  
+  mv output/QC/$(basename {read2}.fastq.gz .fastq.gz)_fastqc.zip output/QC  {sampleName}_R2_fastqc.zip
+  
+  mv output/QC/$(basename {read1}.fastq.gz .fastq.gz)_fastqc.html output/QC  {sampleName}_R1_fastqc.html
+  
+  mv output/QC/$(basename {read2}.fastq.gz .fastq.gz)_fastqc.html output/QC  {sampleName}_R1_fastqc.html  
 
-	# rule quant
-	salmon quant --writeUnmappedNames --threads 1 -i {config.salmon} -l A -1 output/trim/{sampleName}_R1_trimmed.fastq.gz -2 output/trim/{sampleName}_R2_trimmed.fastq.gz -o output/quant/{sampleName}
+  # rule trim
+  trim_galore -o output/trim --paired {read1}.fastq.gz {read2}.fastq.gz
+  
+  mv output/trim/$(basename {read1}.fastq.gz .fastq.gz)_val_1.fq.gz output  trim/{sampleName}_R1_trimmed.fastq.gz
+  
+  mv output/trim/$(basename {read2}.fastq.gz .fastq.gz)_val_2.fq.gz output  trim/{sampleName}_R2_trimmed.fastq.gz
+  
+  mv output/trim/$(basename {read1}.fastq.gz .fastq.gz)_trimming_report.txt  output/trim/{sampleName}_R1_trimming_report.txt
+  
+  mv output/trim/$(basename {read2}.fastq.gz .fastq.gz)_trimming_report.txt  output/trim/{sampleName}_R2_trimming_report.txt  
 
-	# rule align
-	hisat2 -q -x {config.hisat2} -1 output/trim/{sampleName}_R1_trimmed.fastq.gz -2 output/trim/{sampleName}_R2_trimmed.fastq.gz | samtools view -u | samtools sort -o output/align/{sampleName}_sorted.bam
-	samtools flagstat output/align/{sampleName}_sorted.bam > output/align/{sampleName}_stats.txt
-	samtools index output/align/{sampleName}_sorted.bam
+  # rule quant
+  salmon quant --writeUnmappedNames --threads 1 -i {config.salmon} -l A -1  output/trim/{sampleName}_R1_trimmed.fastq.gz -2 output/trim/{sampleName  _R2_trimmed.fastq.gz -o output/quant/{sampleName}  
 
-	# rule signal
-	bamCoverage -b output/align/{sampleName}_sorted.bam -o output/signal/unstranded/{sampleName}.bw
+  # rule align
+  hisat2 -q -x {config.hisat2} -1 output/trim/{sampleName}_R1_trimmed.fastq  gz -2 output/trim/{sampleName}_R2_trimmed.fastq.gz | samtools view -u |   samtools sort -o output/align/{sampleName}_sorted.bam
+  
+  samtools flagstat output/align/{sampleName}_sorted.bam > output/align  {sampleName}_stats.txt
+  
+  samtools index output/align/{sampleName}_sorted.bam  
 
-	# rule strandedSignal
-	bamCoverage --filterRNAstrand forward -b output/align/{sampleName}_sorted.bam -o output/signal/stranded/{sampleName}_fwd.bw
-	bamCoverage --filterRNAstrand reverse -b output/align/{sampleName}_sorted.bam -o output/signal/stranded/{sampleName}_rev.bw
+  # rule signal
+  bamCoverage -b output/align/{sampleName}_sorted.bam -o output/signal  unstranded/{sampleName}.bw  
 
-	# rule multiqc
-	multiqc -f output/* -o output/QC
-	mv output/QC/multiqc_report.html output/QC/{runName}_multiqc_report.html
-	mv output/QC/multiqc_data output/QC/{runName}_multiqc_data
+  # rule strandedSignal
+  bamCoverage --filterRNAstrand forward -b output/align/{sampleName}_sorted  bam -o output/signal/stranded/{sampleName}_fwd.bw
+  
+  bamCoverage --filterRNAstrand reverse -b output/align/{sampleName}_sorted  bam -o output/signal/stranded/{sampleName}_rev.bw  
 
-	# rule tximport
-	Rscript workflows/utils/txImporter.R output/{runName}_RNApipeSamplesheet.txt {config.gtf} output/quant {runName}
-	```
-	
+  # rule multiqc
+  multiqc -f output/* -o output/QC
+  
+  mv output/QC/multiqc_report.html output/QC/{runName}_multiqc_report.html
+  
+  mv output/QC/multiqc_data output/QC/{runName}_multiqc_data  
+
+  # rule tximport
+  Rscript workflows/utils/txImporter.R output/{runName}_RNApipeSamplesheet  txt {config.gtf} output/quant {runName}
+  ```
+
 </details>
 
 <details>
 	<summary>Example of code for mergeSignal workflow</summary>
 
-	```bash
-	# rule mergeAlign
-	samtools merge output/mergeAlign/{mergeName}_sorted.bam output/align/{sampleName1}_sorted.bam output/align/{sampleName2}_sorted.bam
-	samtools flagstat output/mergeAlign/{mergeName}_sorted.bam > output/mergeAlign/{mergeName}_stats.txt
-	samtools index output/mergeAlign/{mergeName}_sorted.bam 
+  ```bash
+  # rule mergeAlign
+  samtools merge output/mergeAlign/{mergeName}_sorted.bam output/align  {sampleName1}_sorted.bam output/align/{sampleName2}_sorted.bam
+  
+  samtools flagstat output/mergeAlign/{mergeName}_sorted.bam > output  mergeAlign/{mergeName}_stats.txt
+  
+  samtools index output/mergeAlign/{mergeName}_sorted.bam 
 
-	# rule mergeSignal
-	bamCoverage -b output/mergeAlign/{mergeName}_sorted.bam -o output/mergeSignal/unstranded/{mergeName}.bw
+  # rule mergeSignal
+  bamCoverage -b output/mergeAlign/{mergeName}_sorted.bam -o output  mergeSignal/unstranded/{mergeName}.bw  
 
-	# rule mergeStrandedSignal
-	bamCoverage --filterRNAstrand forward -b output/mergeAlign/{mergeName}_sorted.bam -o output/mergeSignal/stranded/{mergeName}_fwd.bw
-	bamCoverage --filterRNAstrand reverse -b output/mergeAlign/{mergeName}_sorted.bam -o output/mergeSignal/stranded/{mergeName}_rev.bw
-	```
+  # rule mergeStrandedSignal
+  bamCoverage --filterRNAstrand forward -b output/mergeAlign/{mergeName  _sorted.bam -o output/mergeSignal/stranded/{mergeName}_fwd.bw
+  
+  bamCoverage --filterRNAstrand reverse -b output/mergeAlign/{mergeName  _sorted.bam -o output/mergeSignal/stranded/{mergeName}_rev.bw
+  ```
 
 </details>
-
 
 [Back to top](#table-of-contents)
 
 ## ChIPpipe and ATACpipe
-The `ChIPpipe` and `ATACpipe` SLURM wrappers will launch either the baseline or merged workflows via the `XXXXpipeLauncher` decision workflows. 
+The `ChIPpipe` and `ATACpipe` SLURM wrappers will launch either the baseline or merged workflows via the `ChIPpipeLauncher` and `ATACpipeLauncher` decision workflows. 
 
-Both baseline and merged workflows output peak calls, a count matrix, alignments, and signal tracks. Both workflows generate a final summary `peakCounts.tsv` file containing the counts from each individual alignment at the merged set of peaks.The `XXXXpipeMerged` workflows call peaks from merged alignments, rather than individual alignments, based on the `XXXXconfig.yaml` files. 
+Both baseline and merged workflows output peak calls, a count matrix, alignments, and signal tracks. Both workflows generate a final summary `peakCounts.tsv` file containing the counts from each individual alignment at the merged set of peaks.The `ChIPpipeMerged` and `ATACpipeMerged` workflows call peaks from merged alignments, rather than individual alignments, based on the `ChIPconfig.yaml` and `ATACconfig.yaml` files. 
 
 Output files are named according to the `fileNamesFrom` entry in the config file. Merging is dictated by the `mergeBy` entry in the config file. If `mergeBy` is empty or equivalent to `fileNamesFrom`, only the baseline workflow will be run.
 
+### Workflow
 The `ChIPpipe` and `ATACpipe` core workflows (without merging) are as follows:
 ![](dags/ChIPpipeDAG.png)
+
+### Output 
+```bash
+ChIPpipe-{jobid}.out # or ATACpipe-{jobid}.out
+output/
+├── align
+├── benchmarks
+├── {runName}_ChIPpipeSamplesheet.txt  # {runName}_ATACpipeSamplesheet.txt
+├── logs
+├── logs_slurm
+├── (mergeAlign)  # merging only
+├── (mergeSignal) # merging only
+├── peaks
+├── QC
+├── signal
+└── trim
+```
+
+### Code
+<details>
+	<summary>Example of code for baseline ChIPpipe workflow</summary>
+
+  ```bash
+  # rule fastqc
+  fastqc -o output/QC {read1}.fastq.gz {read2}.fastq.gz
+
+  mv output/QC/$(basename {read1}.fastq.gz .fastq.gz)_fastqc.zip output/QC  {sampleName}_R1_fastqc.zip
+  
+  mv output/QC/$(basename {read2}.fastq.gz .fastq.gz)_fastqc.zip output/QC  {sampleName}_R2_fastqc.zip
+  
+  mv output/QC/$(basename {read1}.fastq.gz .fastq.gz)_fastqc.html output/QC  {sampleName}_R1_fastqc.html
+  
+  mv output/QC/$(basename {read2}.fastq.gz .fastq.gz)_fastqc.html output/QC  {sampleName}_R1_fastqc.html  
+
+  # rule trim
+  trim_galore -o output/trim --paired {read1}.fastq.gz {read2}.fastq.gz
+  
+  mv output/trim/$(basename {read1}.fastq.gz .fastq.gz)_val_1.fq.gz output  trim/{sampleName}_R1_trimmed.fastq.gz
+  
+  mv output/trim/$(basename {read2}.fastq.gz .fastq.gz)_val_2.fq.gz output  trim/{sampleName}_R2_trimmed.fastq.gz
+  
+  mv output/trim/$(basename {read1}.fastq.gz .fastq.gz)_trimming_report.txt  output/trim/{sampleName}_R1_trimming_report.txt
+  
+  mv output/trim/$(basename {read2}.fastq.gz .fastq.gz)_trimming_report.txt  output/trim/{sampleName}_R2_trimming_report.txt  
+
+  # rule align
+  bwa mem -t 8 {config.bwamem} output/trim/{sampleName}_R1_trimmed.fastq.gz output/trim/{sampleName}_R2_trimmed.fastq.gz | samtools view -u | samtools sort -o output/align/{sampleName}_sorted.bam
+
+  samtools flagstat output/align/{sampleName}_sorted.bam > output/align/{sampleName}_stats.txt
+
+  java -Xmx16g -jar /nas/longleaf/apps/picard/2.10.3/picard-2.10.3/picard.jar MarkDuplicates I=output/align/{sampleName}_sorted.bam O=output/align/{sampleName}_nodups_sorted.bam M=output/align/{sampleName}_dup_metrics.txt REMOVE_SEQUENCING_DUPLICATES=true
+
+  samtools index output/align/{sampleName}_nodups_sorted.bam
+
+  # rule signal
+  bamCoverage -b output/align/{sampleName}_nodups_sorted.bam -o output/signal  unstranded/{sampleName}.bw  
+
+  # rule peaks
+  macs2 callpeak -t output/align/{sampleName}_nodups_sorted.bam -f BAM -q 0.01 -g hs --nomodel --shift 0 --extsize 200 --keep-dup all -B --SPMR --outdir output/peaks -n {sampleName}
+
+  # rule multiqc
+  multiqc -f output/* -o output/QC
+  
+  mv output/QC/multiqc_report.html output/QC/{runName}_multiqc_report.html
+  
+  mv output/QC/multiqc_data output/QC/{runName}_multiqc_data  
+
+  # rule countMatrix
+  cat output/peaks/*_peaks.narrowPeak | awk '{{ OFS="\t"}};{{ print $1, $2, $3, $4 }}' | sort -k1,1 -k2,2n | bedtools merge > TEMP.bed
+
+  grep -ve "-1" TEMP.bed > output/peaks/{runName}_mergedPeaks.bed
+
+  printf "chr\tstart\tstop\t" > output/peaks/{runName}_peakCounts.tsv
+
+  for f in output/align/*_nodups_sorted.bam; do NAME=$(basename $f _filter_sorted.bam);  printf '%s\t' "$NAME" >> output/peaks/{runName}_peakCounts.tsv; done
+
+  printf "\n" >> output/peaks/{runName}_peakCounts.tsv
+
+  bedtools multicov -bams output/align/*_nodups_sorted.bam -bed output/peaks/{runName}_mergedPeaks.bed >> output/peaks/{runName}_peakCounts.tsv
+  ```
+
+</details>
+
+<details>
+	<summary>Example of code for merged ChIPpipe workflow</summary>
+
+  ```bash
+  # rule fastqc
+  fastqc -o output/QC {read1}.fastq.gz {read2}.fastq.gz
+
+  mv output/QC/$(basename {read1}.fastq.gz .fastq.gz)_fastqc.zip output/QC  {sampleName}_R1_fastqc.zip
+  
+  mv output/QC/$(basename {read2}.fastq.gz .fastq.gz)_fastqc.zip output/QC  {sampleName}_R2_fastqc.zip
+  
+  mv output/QC/$(basename {read1}.fastq.gz .fastq.gz)_fastqc.html output/QC  {sampleName}_R1_fastqc.html
+  
+  mv output/QC/$(basename {read2}.fastq.gz .fastq.gz)_fastqc.html output/QC  {sampleName}_R1_fastqc.html  
+
+  # rule trim
+  trim_galore -o output/trim --paired {read1}.fastq.gz {read2}.fastq.gz
+  
+  mv output/trim/$(basename {read1}.fastq.gz .fastq.gz)_val_1.fq.gz output  trim/{sampleName}_R1_trimmed.fastq.gz
+  
+  mv output/trim/$(basename {read2}.fastq.gz .fastq.gz)_val_2.fq.gz output  trim/{sampleName}_R2_trimmed.fastq.gz
+  
+  mv output/trim/$(basename {read1}.fastq.gz .fastq.gz)_trimming_report.txt  output/trim/{sampleName}_R1_trimming_report.txt
+  
+  mv output/trim/$(basename {read2}.fastq.gz .fastq.gz)_trimming_report.txt  output/trim/{sampleName}_R2_trimming_report.txt  
+
+  # rule align
+  bwa mem -t 8 {config.bwamem} output/trim/{sampleName}_R1_trimmed.fastq.gz output/trim/{sampleName}_R2_trimmed.fastq.gz | samtools view -u | samtools sort -o output/align/{sampleName}_sorted.bam
+
+  samtools flagstat output/align/{sampleName}_sorted.bam > output/align/{sampleName}_stats.txt
+
+  java -Xmx16g -jar /nas/longleaf/apps/picard/2.10.3/picard-2.10.3/picard.jar MarkDuplicates I=output/align/{sampleName}_sorted.bam O=output/align/{sampleName}_nodups_sorted.bam M=output/align/{sampleName}_dup_metrics.txt REMOVE_SEQUENCING_DUPLICATES=true
+
+  samtools index output/align/{sampleName}_nodups_sorted.bam
+
+  # rule signal
+  bamCoverage -b output/align/{sampleName}_nodups_sorted.bam -o output/signal  unstranded/{sampleName}.bw  
+
+  # rule mergeAlign
+  samtools merge output/mergeAlign/{mergeName}_nodups_sorted.bam output/align/{sampleName1}_nodups_sorted.bam output/align/{sampleName2}_nodups_sorted.bam
+
+  samtools flagstat output/mergeAlign/{mergeName}_nodups_sorted.bam > output/mergeAlign/{mergeName}_stats.txt
+
+  samtools index output/mergeAlign/{mergeName}_nodups_sorted.bam 
+
+  # rule mergeSignal
+  bamCoverage -b output/mergeAlign/{mergeName}_nodups_sorted.bam -o output/mergeSignal/{mergeName}.bw
+
+  # rule peaks
+  macs2 callpeak -t output/mergeAlign/{mergeName}_nodups_sorted.bam -f BAM -q 0.01 -g hs --nomodel --shift 0 --extsize 200 --keep-dup all -B --SPMR --outdir output/peaks -n {mergeName}
+
+  # rule multiqc
+  multiqc -f output/* -o output/QC
+  
+  mv output/QC/multiqc_report.html output/QC/{runName}_multiqc_report.html
+  
+  mv output/QC/multiqc_data output/QC/{runName}_multiqc_data  
+
+  # rule countMatrix
+  cat output/peaks/*_peaks.narrowPeak | awk '{{ OFS="\t"}};{{ print $1, $2, $3, $4 }}' | sort -k1,1 -k2,2n | bedtools merge > TEMP.bed
+
+  grep -ve "-1" TEMP.bed > output/peaks/{runName}_mergedPeaks.bed
+
+  printf "chr\tstart\tstop\t" > output/peaks/{runName}_peakCounts.tsv
+
+  for f in output/align/*_nodups_sorted.bam; do NAME=$(basename $f _filter_sorted.bam);  printf '%s\t' "$NAME" >> output/peaks/{runName}_peakCounts.tsv; done
+
+  printf "\n" >> output/peaks/{runName}_peakCounts.tsv
+
+  bedtools multicov -bams output/align/*_nodups_sorted.bam -bed output/peaks/{runName}_mergedPeaks.bed >> output/peaks/{runName}_peakCounts.tsv
+  ```
+
+</details>
+
+<details>
+	<summary>Example of code for baseline ATACpipe workflow</summary>
+
+  ```bash
+  # rule fastqc
+  fastqc -o output/QC {read1}.fastq.gz {read2}.fastq.gz
+
+  mv output/QC/$(basename {read1}.fastq.gz .fastq.gz)_fastqc.zip output/QC  {sampleName}_R1_fastqc.zip
+  
+  mv output/QC/$(basename {read2}.fastq.gz .fastq.gz)_fastqc.zip output/QC  {sampleName}_R2_fastqc.zip
+  
+  mv output/QC/$(basename {read1}.fastq.gz .fastq.gz)_fastqc.html output/QC  {sampleName}_R1_fastqc.html
+  
+  mv output/QC/$(basename {read2}.fastq.gz .fastq.gz)_fastqc.html output/QC  {sampleName}_R1_fastqc.html  
+
+  # rule trim
+  trim_galore -o output/trim --paired {read1}.fastq.gz {read2}.fastq.gz
+  
+  mv output/trim/$(basename {read1}.fastq.gz .fastq.gz)_val_1.fq.gz output  trim/{sampleName}_R1_trimmed.fastq.gz
+  
+  mv output/trim/$(basename {read2}.fastq.gz .fastq.gz)_val_2.fq.gz output  trim/{sampleName}_R2_trimmed.fastq.gz
+  
+  mv output/trim/$(basename {read1}.fastq.gz .fastq.gz)_trimming_report.txt  output/trim/{sampleName}_R1_trimming_report.txt
+  
+  mv output/trim/$(basename {read2}.fastq.gz .fastq.gz)_trimming_report.txt  output/trim/{sampleName}_R2_trimming_report.txt  
+
+  # rule align
+  bwa mem -t 8 {config.bwamem} output/trim/{sampleName}_R1_trimmed.fastq.gz output/trim/{sampleName}_R2_trimmed.fastq.gz | samtools view -u | samtools sort -o output/align/{sampleName}_sorted.bam
+
+  samtools flagstat output/align/{sampleName}_sorted.bam > output/align/{sampleName}_stats.txt
+
+  java -Xmx16g -jar /nas/longleaf/apps/picard/2.10.3/picard-2.10.3/picard.jar MarkDuplicates I=output/align/{sampleName}_sorted.bam O=output/align/{sampleName}_nodups_sorted.bam M=output/align/{sampleName}_dup_metrics.txt REMOVE_SEQUENCING_DUPLICATES=true
+
+  samtools index output/align/{sampleName}_nodups_sorted.bam
+
+  samtools idxstats output/align/{sampleName}_nodups_sorted.bam | cut -f 1 | grep -v 'chrM' | xargs samtools view -b output/align/{sampleName}_nodups_sorted.bam > output/align/{sampleName}_nodups_filtered_sorted.bam
+
+  samtools index output/align/{sampleName}_nodups_filtered_sorted.bam
+
+  # rule signal
+  bamCoverage -b output/align/{sampleName}_nodups_sorted.bam -o output/signal  unstranded/{sampleName}.bw  
+
+  # rule peaks
+  macs2 callpeak -t output/align/{sampleName}_nodups_sorted.bam -f BAM -q 0.01 -g hs --nomodel --shift 100 --extsize 200 --keep-dup all -B --SPMR --outdir output/peaks -n {sampleName}
+
+  # rule multiqc
+  multiqc -f output/* -o output/QC
+  
+  mv output/QC/multiqc_report.html output/QC/{runName}_multiqc_report.html
+  
+  mv output/QC/multiqc_data output/QC/{runName}_multiqc_data  
+
+  # rule countMatrix
+  cat output/peaks/*_peaks.narrowPeak | awk '{{ OFS="\t"}};{{ print $1, $2, $3, $4 }}' | sort -k1,1 -k2,2n | bedtools merge > TEMP.bed
+
+  grep -ve "-1" TEMP.bed > output/peaks/{runName}_mergedPeaks.bed
+
+  printf "chr\tstart\tstop\t" > output/peaks/{runName}_peakCounts.tsv
+
+  for f in output/align/*_nodups_filtered_sorted.bam; do NAME=$(basename $f _filter_sorted.bam);  printf '%s\t' "$NAME" >> output/peaks/{runName}_peakCounts.tsv; done
+
+  printf "\n" >> output/peaks/{runName}_peakCounts.tsv
+
+  bedtools multicov -bams output/align/*_nodups_filtered_sorted.bam -bed output/peaks/{runName}_mergedPeaks.bed >> output/peaks/{runName}_peakCounts.tsv
+  ```
+
+</details>
+
+<details>
+	<summary>Example of code for merged ATACpipe workflow</summary>
+
+  ```bash
+  # rule fastqc
+  fastqc -o output/QC {read1}.fastq.gz {read2}.fastq.gz
+
+  mv output/QC/$(basename {read1}.fastq.gz .fastq.gz)_fastqc.zip output/QC  {sampleName}_R1_fastqc.zip
+  
+  mv output/QC/$(basename {read2}.fastq.gz .fastq.gz)_fastqc.zip output/QC  {sampleName}_R2_fastqc.zip
+  
+  mv output/QC/$(basename {read1}.fastq.gz .fastq.gz)_fastqc.html output/QC  {sampleName}_R1_fastqc.html
+  
+  mv output/QC/$(basename {read2}.fastq.gz .fastq.gz)_fastqc.html output/QC  {sampleName}_R1_fastqc.html  
+
+  # rule trim
+  trim_galore -o output/trim --paired {read1}.fastq.gz {read2}.fastq.gz
+  
+  mv output/trim/$(basename {read1}.fastq.gz .fastq.gz)_val_1.fq.gz output  trim/{sampleName}_R1_trimmed.fastq.gz
+  
+  mv output/trim/$(basename {read2}.fastq.gz .fastq.gz)_val_2.fq.gz output  trim/{sampleName}_R2_trimmed.fastq.gz
+  
+  mv output/trim/$(basename {read1}.fastq.gz .fastq.gz)_trimming_report.txt  output/trim/{sampleName}_R1_trimming_report.txt
+  
+  mv output/trim/$(basename {read2}.fastq.gz .fastq.gz)_trimming_report.txt  output/trim/{sampleName}_R2_trimming_report.txt  
+
+  # rule align
+  bwa mem -t 8 {config.bwamem} output/trim/{sampleName}_R1_trimmed.fastq.gz output/trim/{sampleName}_R2_trimmed.fastq.gz | samtools view -u | samtools sort -o output/align/{sampleName}_sorted.bam
+
+  samtools flagstat output/align/{sampleName}_sorted.bam > output/align/{sampleName}_stats.txt
+
+  java -Xmx16g -jar /nas/longleaf/apps/picard/2.10.3/picard-2.10.3/picard.jar MarkDuplicates I=output/align/{sampleName}_sorted.bam O=output/align/{sampleName}_nodups_sorted.bam M=output/align/{sampleName}_dup_metrics.txt REMOVE_SEQUENCING_DUPLICATES=true
+
+  samtools index output/align/{sampleName}_nodups_sorted.bam
+
+  samtools idxstats output/align/{sampleName}_nodups_sorted.bam | cut -f 1 | grep -v 'chrM' | xargs samtools view -b output/align/{sampleName}_nodups_sorted.bam > output/align/{sampleName}_nodups_filtered_sorted.bam
+
+  samtools index output/align/{sampleName}_nodups_filtered_sorted.bam
+
+  # rule signal
+  bamCoverage -b output/align/{sampleName}_nodups_sorted.bam -o output/signal  unstranded/{sampleName}.bw  
+
+  # rule mergeAlign
+  samtools merge output/mergeAlign/{mergeName}_nodups_sorted.bam output/align/{sampleName1}_nodups_sorted.bam output/align/{sampleName2}_nodups_sorted.bam
+
+  samtools flagstat output/mergeAlign/{mergeName}_nodups_sorted.bam > output/mergeAlign/{mergeName}_stats.txt
+
+  samtools index output/mergeAlign/{mergeName}_nodups_sorted.bam 
+
+  # rule mergeSignal
+  bamCoverage -b output/mergeAlign/{mergeName}_nodups_sorted.bam -o output/mergeSignal/{mergeName}.bw
+
+  # rule peaks
+  macs2 callpeak -t output/mergeAlign/{mergeName}_nodups_sorted.bam -f BAM -q 0.01 -g hs --nomodel --shift 100 --extsize 200 --keep-dup all -B --SPMR --outdir output/peaks -n {mergeName}
+
+  # rule multiqc
+  multiqc -f output/* -o output/QC
+  
+  mv output/QC/multiqc_report.html output/QC/{runName}_multiqc_report.html
+  
+  mv output/QC/multiqc_data output/QC/{runName}_multiqc_data  
+
+  # rule countMatrix
+  cat output/peaks/*_peaks.narrowPeak | awk '{{ OFS="\t"}};{{ print $1, $2, $3, $4 }}' | sort -k1,1 -k2,2n | bedtools merge > TEMP.bed
+
+  grep -ve "-1" TEMP.bed > output/peaks/{runName}_mergedPeaks.bed
+
+  printf "chr\tstart\tstop\t" > output/peaks/{runName}_peakCounts.tsv
+
+  for f in output/align/*_nodups_filtered_sorted.bam; do NAME=$(basename $f _filter_sorted.bam);  printf '%s\t' "$NAME" >> output/peaks/{runName}_peakCounts.tsv; done
+
+  printf "\n" >> output/peaks/{runName}_peakCounts.tsv
+
+  bedtools multicov -bams output/align/*_nodups_filtered_sorted.bam -bed output/peaks/{runName}_mergedPeaks.bed >> output/peaks/{runName}_peakCounts.tsv
+  ```
+
+</details>
 
 [Back to top](#table-of-contents)
 
@@ -201,12 +525,14 @@ The `ChIPpipe` and `ATACpipe` core workflows (without merging) are as follows:
 Sometimes you want to create merged signal tracks using several different merging schemes. The `mergeSignal` workflow can be used following a previous run to generate new signal tracks in this way (requires at least existing `.bam` and `.bai` files for samples in the samplesheet). Merging will be determined using the `mergeBy` parameter in the config sheet used. The general steps are:
 
 1. Complete a core run, featuring at minimum the following output structure:
+```bash
 output/
 └── align
 	├── sample1.bam
 	├── sample1.bam.bai
 	├── sample2.bam
 	└── sample2.bam.bai
+```
 
 2. Adjust the `config.yaml` file `mergeBy` parameter to merge accordingly.
 
@@ -270,6 +596,7 @@ Use this command when you want to delete or add to a previously generated output
 **ChIPpipe + ATACpipe**
 - Test and facilitate compatibility with mergeSignal
 - Consider editing ChIPpipe rule countMatrix to create header line from `{wildcards.sampleName}`
+- Adjust chrM format to be a config parameter in rule align
 - Move MACS2 peak calling settings into config
 
 [Back to top](#table-of-contents)
