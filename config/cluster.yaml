@@ -3,7 +3,7 @@ __default__:
   partition: general # -p
   time: 4320 # -t
   cpusPerTask: "{threads}" # -c
-  memPerCpu: 4G # --mem-per-cpu
+  memPerCpu: 64G # --mem-per-cpu
   nodes: 1
   output: "output/logs_slurm/{rule}.{wildcards}.{jobid}.out"
   error: "output/logs_slurm/{rule}.{wildcards}.{jobid}.err"
