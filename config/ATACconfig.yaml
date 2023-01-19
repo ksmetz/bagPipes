@@ -17,7 +17,7 @@ bwamem: '/proj/seq/data/HG19_UCSC/Sequence/BWAIndex/genome.fa'
 
 ## Software versions
 fastqcVers: "0.11.5"
-trimVers: "0.4.3"
+trimVers: "0.6.2"
 bwaVers: "0.7.17"
 samtoolsVers: "1.9"
 javaVers: "10.0.2"
