@@ -1,6 +1,9 @@
 ## Path to sample sheet
 samplesheet: 'ChIPsamplesheet.txt'
 
+## Indicate whether or not sequencing reads are paired- or single-end
+paired: False
+
 ## List columns to concatenate for file names 
 ## (or indicate a single Name column, i.e. fileNamesFrom: ['Name'])
 fileNamesFrom: ['Project', 'Cell_Type', 'Target', 'Time', 'Bio_Rep', 'Tech_Rep']
@@ -13,7 +16,7 @@ mergeBy: ['Project', 'Cell_Type', 'Target', 'Time']
 stranded: False
 
 ## Genome-specific reference parameters
-bwamem: '/proj/seq/data/HG19_UCSC/Sequence/BWAIndex/genome.fa'
+bwamem: '/proj/seq/data/hg38_UCSC/Sequence/BWAIndex/genome.fa'
 
 ## Software versions
 fastqcVers: "0.11.5"
