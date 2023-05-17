@@ -2,7 +2,7 @@
 samplesheet: 'ChIPsamplesheet.txt'
 
 ## Indicate whether or not sequencing reads are paired- or single-end
-paired: False
+paired: True
 
 ## List columns to concatenate for file names 
 ## (or indicate a single Name column, i.e. fileNamesFrom: ['Name'])
