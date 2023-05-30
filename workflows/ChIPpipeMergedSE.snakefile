@@ -41,7 +41,7 @@ rule trim:
 		"""
 		module load trim_galore/{params.version};
 		trim_galore -o {params.dir} --retain_unpaired {input.R1} 1> {log.out} 2> {log.err};
-		mv {params.dir}/$(basename {input.R1} .fastq.gz)_val_1.fq.gz  {output.trim1};
+		mv {params.dir}/$(basename {input.R1} .fastq.gz).fq.gz  {output.trim1};
 		mv {params.dir}/$(basename {input.R1})_trimming_report.txt  {output.report1}
 		"""
 
