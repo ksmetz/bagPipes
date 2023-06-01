@@ -15,16 +15,17 @@ mergeBy: ['Project', 'Cell_Type', 'Target', 'Time']
 ## Indicate whether to create stranded signal tracks
 stranded: False
 
-## Genome-specific reference parameters
+## Genome-specific reference parameters (choose correct genome build!)
+## bwamem: '/proj/seq/data/HG19_UCSC/Sequence/BWAIndex/genome.fa'
 bwamem: '/proj/seq/data/hg38_UCSC/Sequence/BWAIndex/genome.fa'
 
 ## Software versions
-fastqcVers: "0.11.5"
+fastqcVers: "0.11.9"
 trimVers: "0.6.7"
 bwaVers: "0.7.17"
-samtoolsVers: "1.9"
+samtoolsVers: "1.17"
 javaVers: "10.0.2"
-deeptoolsVers: "3.0.1"
-multiqcVers: "1.5" 
-bedtoolsVers: "2.26"
+deeptoolsVers: "3.5.1"
+multiqcVers: "1.11" 
+bedtoolsVers: "2.30"
 macsVers: "2016-02-15"
