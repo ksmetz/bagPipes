@@ -5,6 +5,8 @@ bagPipes is a collection of next-gen sequencing processing pipelines for the Pha
 
 bagPipes includes pipelines for paired-end RNA-seq data, ChIP-seq/CUT&RUN data, and ATAC-seq data using the Snakemake framework.
 
+It also includes a pipeline for single-end ChIP-seq/CUT&RUN data.
+
 This pipeline is inteded to be run on the UNC HPC longleaf cluster with SLURM.
 
 ### Table of Contents
@@ -34,7 +36,7 @@ The individual pipelines of `bagPipes` are run in very similar ways, with differ
 	git clone https://github.com/ksmetz/bagPipes.git .
 	```
 
-2. Edit the tab-separated `samplesheet.txt` file with the names of `Read1` and `Read2` gzipped fastq files, and the paths to these files under the `Sequencing_Directory` column. No naming convention is needed. Any number of optional columns can be included for metadata, output file naming, and sample merging. An example is shown below:
+2. Edit the tab-separated `XXXXsamplesheet.txt` file with the names of `Read1` and `Read2` gzipped fastq files (or just `Read1` for single-end data), and the paths to these files under the `Sequencing_Directory` column. No naming convention is needed. Any number of optional columns can be included for metadata, output file naming, and sample merging. An example is shown below:
 
 	| Project   | Cell_Type | Genotype	| Bio_Rep	| Tech_Rep	| Seq_Rep	| Read1 | Read2 | Sequencing_Directory |
 	|---------|-----------|----------|---------|----------|---------|-------------------|-------------------|---------------------------| 
@@ -204,6 +206,8 @@ output/
 
 ## ChIPpipe and ATACpipe
 The `ChIPpipe` and `ATACpipe` SLURM wrappers will launch either the baseline or merged workflows via the `ChIPpipeLauncher` and `ATACpipeLauncher` decision workflows. 
+
+For single-end ChIP/CUT&RUN data, be sure to set `paired: False` in the `ChIPconfig.yaml` file and modify the `ChIPsamplesheetSE.txt` file accordingly.
 
 Both baseline and merged workflows output peak calls, a count matrix, alignments, and signal tracks. Both workflows generate a final summary `peakCounts.tsv` file containing the counts from each individual alignment at the merged set of peaks.The `ChIPpipeMerged` and `ATACpipeMerged` workflows call peaks from merged alignments, rather than individual alignments, based on the `ChIPconfig.yaml` and `ATACconfig.yaml` files. 
 
