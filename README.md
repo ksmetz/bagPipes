@@ -47,36 +47,40 @@ The individual pipelines of `bagPipes` are run in very similar ways, with differ
 
 3. Edit the appropriate `config.yaml` file for your system/experiment (`RNAconfig.yaml`, `ChIPconfig.yaml`, or `ATACconfig.yaml` will be used for appropriate pipelines by default). The `fileNamesFrom` parameter uses a list of column names to generate sample names. The `mergeBy` parameter will be used to create merged alignments and downstream files (signal tracks, peaks). To suppress merging, set `mergeBy` equal to `fileNamesFrom` or to `''`. See the example `RNAconfig.yaml` below:
 
-	```yaml
-	## Path to sample sheet
-	samplesheet: 'RNAsamplesheet.txt'
+```yaml
+## Path to sample sheet
+samplesheet: 'RNAsamplesheet.txt'
 
-	## List columns to concatenate for file names 
-	## (or indicate a single Name column, i.e. fileNamesFrom: ['Name'])
-	fileNamesFrom: ['Project', 'Cell_Type', 'Genotype', 'Time', 'Bio_Rep', 'Tech_Rep']
+## List columns to concatenate for file names 
+## (or indicate a single Name column, i.e. fileNamesFrom: ['Name'])
+fileNamesFrom: ['Project', 'Cell_Type', 'Genotype', 'Time', 'Bio_Rep', 'Tech_Rep']
 
-	## List columns to group (i.e. any columns left out will become part of the same group)
-	## set mergeBy: '' for no merging
-	mergeBy: ['Project', 'Cell_Type', 'Genotype', 'Time']
+## List columns to group (i.e. any columns left out will become part of the same group)
+## set mergeBy: '' for no merging
+mergeBy: ['Project', 'Cell_Type', 'Genotype']
 
-	## Indicate whether to create stranded signal tracks
-	stranded: True # False
+## Indicate whether to create stranded signal tracks
+stranded: True # False
 
-	## Genome-specific reference parameters
-	salmon: '/proj/seq/data/salmon_RNAseq_genomes/hg38_cdna/salmon_index/default'
-	hisat2: '/proj/seq/data/hg38_UCSC/Sequence/HISAT2Index/genome'
-	gtf: '/proj/seq/data/GRCh38_GENCODE/gencode.v32.primary_assembly.annotation.gtf'
+## Genome-specific reference parameters (choose correct genome build!)
+salmon: '/proj/seq/data/salmon_RNAseq_genomes/hg38_cdna/salmon_index/default'
+hisat2: '/proj/seq/data/hg38_UCSC/Sequence/HISAT2Index/genome'
+gtf: '/proj/seq/data/GRCh38_GENCODE/gencode.v32.primary_assembly.annotation.gtf'
 
-	## Software versions
-	fastqcVers: "0.11.5"
-	trimVers: "0.4.3"
-	salmonVers: "1.4.0"
-	hisatVers: "2.1.0"
-	samtoolsVers: "1.9"
-	deeptoolsVers: "3.0.1"
-	multiqcVers: "1.5" 
-	rVers: "3.3.1"
-	```
+## salmon: '/proj/seq/data/HG19_UCSC/Sequence/SalmonIndex/'
+## hisat2: '/proj/seq/data/HG19_UCSC/Sequence/HISAT2Index/'
+## gtf: '/proj/seq/data/HG19_UCSC/Annotation/Genes/genes.gtf'
+
+## Software versions
+fastqcVers: "0.11.9"
+trimVers: "0.6.7"
+salmonVers: "1.10.0"
+hisatVers: "2.2.1"
+samtoolsVers: "1.17"
+deeptoolsVers: "3.5.1"
+multiqcVers: "1.11" 
+rVers: "4.2.2"
+```
 
 4. Submit to `SLURM` with sbatch scripts:
 
