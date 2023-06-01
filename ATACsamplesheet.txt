@@ -1,0 +1,3 @@
+Project	Cell_Type	Time	Condition	Bio_Rep	Tech_Rep	Seq_Rep	Read1	Read2	Sequencing_Directory
+YAPP	HEK	0h	cont	1	1	1	file.fastq.gz	file.fastq.gz	/path/to/sequencing/directory/
+YAPP	HEK	0h	cont	2	1	1	file.fastq.gz	file.fastq.gz	/path/to/sequencing/directory/
