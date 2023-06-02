@@ -12,17 +12,21 @@ mergeBy: ['Project', 'Cell_Type', 'Genotype']
 ## Indicate whether to create stranded signal tracks
 stranded: True # False
 
-## Genome-specific reference parameters
+## Genome-specific reference parameters (choose correct genome build!)
 salmon: '/proj/seq/data/salmon_RNAseq_genomes/hg38_cdna/salmon_index/default'
 hisat2: '/proj/seq/data/hg38_UCSC/Sequence/HISAT2Index/genome'
 gtf: '/proj/seq/data/GRCh38_GENCODE/gencode.v32.primary_assembly.annotation.gtf'
 
+## salmon: '/proj/seq/data/HG19_UCSC/Sequence/SalmonIndex/'
+## hisat2: '/proj/seq/data/HG19_UCSC/Sequence/HISAT2Index/'
+## gtf: '/proj/seq/data/HG19_UCSC/Annotation/Genes/genes.gtf'
+
 ## Software versions
-fastqcVers: "0.11.5"
+fastqcVers: "0.11.9"
 trimVers: "0.6.7"
-salmonVers: "1.4.0"
-hisatVers: "2.1.0"
-samtoolsVers: "1.9"
-deeptoolsVers: "3.2.0"
-multiqcVers: "1.5" 
-rVers: "3.3.1"
+salmonVers: "1.10.0"
+hisatVers: "2.2.1"
+samtoolsVers: "1.17"
+deeptoolsVers: "3.5.1"
+multiqcVers: "1.11" 
+rVers: "4.2.2"

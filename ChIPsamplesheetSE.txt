@@ -1,0 +1,3 @@
+Project	Cell_Type	Target	Treatment	Time	Bio_Rep	Read1	Sequencing_Directory
+YAPP	T47D	CTCF	cont	0h	1	file.fastq.gz	/path/to/sequencing/directory/
+YAPP	T47D	CTCF	nacl	1h	1	file.fastq.gz	/path/to/sequencing/directory/

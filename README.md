@@ -5,6 +5,8 @@ bagPipes is a collection of next-gen sequencing processing pipelines for the Pha
 
 bagPipes includes pipelines for paired-end RNA-seq data, ChIP-seq/CUT&RUN data, and ATAC-seq data using the Snakemake framework.
 
+It also includes a pipeline for single-end ChIP-seq/CUT&RUN data.
+
 This pipeline is inteded to be run on the UNC HPC longleaf cluster with SLURM.
 
 ### Table of Contents
@@ -34,7 +36,7 @@ The individual pipelines of `bagPipes` are run in very similar ways, with differ
 	git clone https://github.com/ksmetz/bagPipes.git .
 	```
 
-2. Edit the tab-separated `samplesheet.txt` file with the names of `Read1` and `Read2` gzipped fastq files, and the paths to these files under the `Sequencing_Directory` column. No naming convention is needed. Any number of optional columns can be included for metadata, output file naming, and sample merging. An example is shown below:
+2. Edit the tab-separated `XXXXsamplesheet.txt` file with the names of `Read1` and `Read2` gzipped fastq files (or just `Read1` for single-end data), and the paths to these files under the `Sequencing_Directory` column. No naming convention is needed. Any number of optional columns can be included for metadata, output file naming, and sample merging. An example is shown below:
 
 	| Project   | Cell_Type | Genotype	| Bio_Rep	| Tech_Rep	| Seq_Rep	| Read1 | Read2 | Sequencing_Directory |
 	|---------|-----------|----------|---------|----------|---------|-------------------|-------------------|---------------------------| 
@@ -45,36 +47,40 @@ The individual pipelines of `bagPipes` are run in very similar ways, with differ
 
 3. Edit the appropriate `config.yaml` file for your system/experiment (`RNAconfig.yaml`, `ChIPconfig.yaml`, or `ATACconfig.yaml` will be used for appropriate pipelines by default). The `fileNamesFrom` parameter uses a list of column names to generate sample names. The `mergeBy` parameter will be used to create merged alignments and downstream files (signal tracks, peaks). To suppress merging, set `mergeBy` equal to `fileNamesFrom` or to `''`. See the example `RNAconfig.yaml` below:
 
-	```yaml
-	## Path to sample sheet
-	samplesheet: 'RNAsamplesheet.txt'
+```yaml
+## Path to sample sheet
+samplesheet: 'RNAsamplesheet.txt'
 
-	## List columns to concatenate for file names 
-	## (or indicate a single Name column, i.e. fileNamesFrom: ['Name'])
-	fileNamesFrom: ['Project', 'Cell_Type', 'Genotype', 'Time', 'Bio_Rep', 'Tech_Rep']
+## List columns to concatenate for file names 
+## (or indicate a single Name column, i.e. fileNamesFrom: ['Name'])
+fileNamesFrom: ['Project', 'Cell_Type', 'Genotype', 'Time', 'Bio_Rep', 'Tech_Rep']
 
-	## List columns to group (i.e. any columns left out will become part of the same group)
-	## set mergeBy: '' for no merging
-	mergeBy: ['Project', 'Cell_Type', 'Genotype', 'Time']
+## List columns to group (i.e. any columns left out will become part of the same group)
+## set mergeBy: '' for no merging
+mergeBy: ['Project', 'Cell_Type', 'Genotype']
 
-	## Indicate whether to create stranded signal tracks
-	stranded: True # False
+## Indicate whether to create stranded signal tracks
+stranded: True # False
 
-	## Genome-specific reference parameters
-	salmon: '/proj/seq/data/salmon_RNAseq_genomes/hg38_cdna/salmon_index/default'
-	hisat2: '/proj/seq/data/hg38_UCSC/Sequence/HISAT2Index/genome'
-	gtf: '/proj/seq/data/GRCh38_GENCODE/gencode.v32.primary_assembly.annotation.gtf'
+## Genome-specific reference parameters (choose correct genome build!)
+salmon: '/proj/seq/data/salmon_RNAseq_genomes/hg38_cdna/salmon_index/default'
+hisat2: '/proj/seq/data/hg38_UCSC/Sequence/HISAT2Index/genome'
+gtf: '/proj/seq/data/GRCh38_GENCODE/gencode.v32.primary_assembly.annotation.gtf'
 
-	## Software versions
-	fastqcVers: "0.11.5"
-	trimVers: "0.4.3"
-	salmonVers: "1.4.0"
-	hisatVers: "2.1.0"
-	samtoolsVers: "1.9"
-	deeptoolsVers: "3.0.1"
-	multiqcVers: "1.5" 
-	rVers: "3.3.1"
-	```
+## salmon: '/proj/seq/data/HG19_UCSC/Sequence/SalmonIndex/'
+## hisat2: '/proj/seq/data/HG19_UCSC/Sequence/HISAT2Index/'
+## gtf: '/proj/seq/data/HG19_UCSC/Annotation/Genes/genes.gtf'
+
+## Software versions
+fastqcVers: "0.11.9"
+trimVers: "0.6.7"
+salmonVers: "1.10.0"
+hisatVers: "2.2.1"
+samtoolsVers: "1.17"
+deeptoolsVers: "3.5.1"
+multiqcVers: "1.11" 
+rVers: "4.2.2"
+```
 
 4. Submit to `SLURM` with sbatch scripts:
 
@@ -204,6 +210,8 @@ output/
 
 ## ChIPpipe and ATACpipe
 The `ChIPpipe` and `ATACpipe` SLURM wrappers will launch either the baseline or merged workflows via the `ChIPpipeLauncher` and `ATACpipeLauncher` decision workflows. 
+
+For single-end ChIP/CUT&RUN data, be sure to set `paired: False` in the `ChIPconfig.yaml` file and modify the `ChIPsamplesheetSE.txt` file accordingly.
 
 Both baseline and merged workflows output peak calls, a count matrix, alignments, and signal tracks. Both workflows generate a final summary `peakCounts.tsv` file containing the counts from each individual alignment at the merged set of peaks.The `ChIPpipeMerged` and `ATACpipeMerged` workflows call peaks from merged alignments, rather than individual alignments, based on the `ChIPconfig.yaml` and `ATACconfig.yaml` files. 
 
