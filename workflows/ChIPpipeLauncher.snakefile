@@ -13,7 +13,7 @@ samples = pd.read_csv(config["samplesheet"], sep='\t')
 samples = samples.astype(str)
 
 ## Decide between paired-end or single-end sequencing workflow
-if config['paired'] == 'TRUE':
+if config['paired'] == 'True':
 
 	## Concatenate the sequencing directory to Read1 and Read2 for full paths
 	samples['Read1'] = samples[['Sequencing_Directory', 'Read1']].apply(lambda row: os.path.join(*row), axis=1)
